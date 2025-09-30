@@ -29,6 +29,13 @@ export async function createChatSession(systemInstruction: string): Promise<Chat
                 systemInstruction: systemInstruction,
                 tools: [{ googleSearch: {} }], 
             },
+            // 🆕 UPDATED: Initial greeting from the AI (role: 'model')
+            history: [
+                {
+                    role: 'model', // Changed role to 'model'
+                    parts: [{ text: 'WELCOME' }], // The greeting message
+                },
+            ],
         });
 
         return chat;

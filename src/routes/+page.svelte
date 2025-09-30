@@ -11,7 +11,7 @@
     let prompt = '';
     let chatContainer: HTMLDivElement; // For auto-scrolling
     
-    const systemInstruction ='You are J.A.R.V.I.S an AI assistant specialized in providing comprehensive troubleshooting for energy engineering processes, tecniques and so on  (AITfES - AI Troubleshooting for Energy Systems)  Your primary directives are 1 Troubleshooting Flow Your sole goal is to guide the user to a solution by asking one focused question at a time Do not offer solutions until you are confident in the diagnosis2 One Question Rule Every single response you generate MUST contain only one clear and focused question to the user to gather more diagnostic information Do not ask follow-up questions or offer any suggestions in the same turn  Rejection Rule 1 Scope If the user asks a question unrelated energy engineering processes, tecniques and so on you MUST politely reject it by stating "My function is limited to energy engineering processes, techniques and so on only Please ask a technical troubleshooting question" 5 Rejection Rule 2 Too many question-If the users input contains more than one question ie multiple questions marks or clearly distinct queries you MUST politely reject it by stating Please focus on one response or one focused question at a time to maintain a clear troubleshooting flow. After 4 query, propose some reasoning and then continue. Do not go on large QA spree';
+    const systemInstruction ='You are AITfES an AI assistant specialized in providing comprehensive troubleshooting for energy engineering processes, tecniques and so on  (AITfES - AI Troubleshooting for Energy Systems)  Your primary directives are 1 Troubleshooting Flow Your sole goal is to guide the user to a solution by asking one focused question at a time Do not offer solutions until you are confident in the diagnosis2 One Question Rule Every single response you generate MUST contain only one clear and focused question to the user to gather more diagnostic information Do not ask follow-up questions or offer any suggestions in the same turn  Rejection Rule 1 Scope If the user asks a question unrelated energy engineering processes, tecniques and so on you MUST politely reject it by stating "My function is strictly limited to providing troubleshooting for energy engineering processes, techniques, and systems. To best assist you, could you please rephrase your request ?" 5 Rejection Rule 2 Too many question-If the users input contains more than one question ie multiple questions marks or clearly distinct queries you MUST politely reject it by stating Please focus on one response or one focused question at a time to maintain a clear troubleshooting flow. After 4 query, propose some reasoning and then continue. Do not go on large QA spree';
 
     // --- Core Logic ---
 
@@ -90,10 +90,32 @@
 
 <div class="chat-app">
     <header class="app-header">
-        <h1 class="header-title">Gemini SvelteChat</h1>
+        <h1 class="header-title">AITfES</h1>
         {#if chat}
             <button 
-                on:click={() => history.set([])}
+                on:click={async () => {
+            // Set loading state
+            isLoading = true;
+
+            // 1. Clear the visual history
+            history.set([]); 
+            
+            // 2. Re-initialize the AI session to clear its internal memory
+            try {
+                // AWAIT the Promise to get the new Chat object, then assign it
+                chat = await createChatSession(systemInstruction); 
+                
+            } catch (error) {
+                // Handle the error if the session fails to start
+                console.error("Failed to renew chat session:", error);
+                // Optionally, set an error message to display in the UI
+                // errorMessage = 'Failed to start new session. Check API key.'; 
+                chat = null; // Clear chat if re-initialization fails
+            } finally {
+                // Clear loading state once complete
+                isLoading = false; 
+            }
+        }}
                 class="clear-history-button"
                 aria-label="Clear Chat History"
             >
@@ -103,18 +125,30 @@
     </header>
 
     <div class="chat-history-container" bind:this={chatContainer}>
+
+       <div style="text-align: center; width: 100%;">
+    <p style="font-family: Arial, sans-serif; font-size: 1em; color: #333; line-height: 1.5; margin: 0 auto;">
+        <strong style="color: #007bff; font-size: 1.1em;">I'm AITfES</strong> 
+        <br>
+        <strong style="color: #007bff; font-size: 1.1em;">AI Troubleshooting for Energy Systems</strong> 
+        <br>
+        💡
+        <br>
+        My sole purpose is to guide you to a solution for energy engineering processes and techniques through a focused, step-by-step diagnostic flow.
+    </p>
+</div>
         
         {#if !chat && !isLoading}
             <div class="system-message warning">
-                <p class="font-semibold">Chat Session Offline ⚠️</p>
-                <p>The session failed to start. Please check the **hardcoded API Key** in <code>src/lib/gemini.ts</code> and refresh the page.</p>
+                <p class="font-semibold" style="text-align: center;">Chat Session Offline ⚠️</p>
+                <p style="text-align: center;">Please wait for initialisation.</p>
             </div>
         {/if}
 
         {#each $history as message}
             <div class="message-row {message.role === 'user' ? 'user-row' : 'model-row'}">
                 <div class="chat-message {message.role}">
-                    <p class="message-role">{message.role === 'user' ? 'You' : 'Gemini'}</p>
+                    <p class="message-role">{message.role === 'user' ? 'You' : 'AITfES'}</p>
                     <div class="message-content">
                         {message.text}
                     </div>
@@ -165,17 +199,25 @@
 </div>
 
 <style>
-    /* CSS Variables for better maintainability and theme-like adjustments */
+    /* * Svelte-Scoped CSS - Automatically applies only to this component.
+     * Includes Green Palette, Simplistic Design, and Glassmorphism.
+     */
     :root {
-        /* Colors */
-        --color-primary: #2563eb;
-        --color-primary-dark: #1d4ed8;
-        --color-background-app: #f9fafb;
+        /* Green Colors (Darker Shades for a more 'earthy' or 'deep' green theme) */
+        --color-primary: #15803d; 	/* Deep Green 600 */
+        --color-primary-dark: #006837; /* Darker Green for hover/active */
+        --color-background-app: #e0f2f1; /* Light Teal/Green 100 - Base for glass effect */
         --color-background-paper: #ffffff;
-        --color-border: #e5e7eb;
-        --color-text: #1f2937;
-        --color-user-text: white;
-        --color-role-text-user: #bfdbfe;
+        --color-border: #d1d5db; /* Neutral light border */
+        --color-text: #1f2937; /* Darker grey text */
+        --color-user-text: white; /* White text on primary background */
+        --color-role-text-user: #a7f3d0; /* Very light green for subtle role text on user bubble */
+        
+        /* Glassmorphism/Translucency */
+        --glass-bg-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white */
+        --glass-blur: 8px; /* The core blur effect */
+        --glass-border: rgba(255, 255, 255, 0.7); /* Lighter border for contrast */
+        --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         
         /* Spacing */
         --space-sm: 0.5rem;
@@ -183,54 +225,57 @@
         --space-lg: 1.5rem;
 
         /* Radius */
-        --radius-sm: 0.5rem;
-        --radius-md: 0.75rem;
+        --radius-sm: 0.4rem;
+        --radius-md: 0.6rem;
         --radius-lg: 1rem;
     }
 
     /* =================================
-       1. Global App Structure
-       ================================= */
+      1. Global App Structure
+      ================================= */
 
     .chat-app {
         display: flex;
         flex-direction: column;
-        height: 100vh; /* Full viewport height on mobile */
+        height: 100vh;
         width: 100%;
-        max-width: 480px; /* Max width for desktop/tablet */
+        max-width: 480px;
         margin: 0 auto;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         background-color: var(--color-background-app);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
     }
 
     /* Mobile Readability & Layout Improvement */
     @media (max-width: 480px) {
         .chat-app {
-            border-left: none;
-            border-right: none;
-            box-shadow: none; /* Full-screen mobile feel */
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
         }
-        /* Ensure inputs and buttons are easily tappable */
         .prompt-input, .send-button {
-            min-height: 48px; 
+            min-height: 48px;
             padding: var(--space-md);
         }
     }
 
     /* =================================
-       2. Header & Footer
-       ================================= */
+      2. Header & Footer (Glassmorphism Applied)
+      ================================= */
 
     .app-header, .app-footer {
         padding: var(--space-md);
-        background-color: var(--color-background-paper);
-        border-color: var(--color-border);
+        background-color: var(--glass-bg-color); /* Translucent background */
+        backdrop-filter: blur(var(--glass-blur)); /* The Glass Effect */
+        -webkit-backdrop-filter: blur(var(--glass-blur)); /* For Safari */
         z-index: 10;
-        /* Separator lines */
     }
 
     .app-header {
-        border-bottom: 1px solid var(--color-border);
+        border-bottom: 1px solid var(--glass-border); /* Light border for definition */
+        box-shadow: var(--glass-shadow); /* Glass shadow */
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -240,33 +285,35 @@
     .header-title {
         font-size: 1.25rem;
         font-weight: 700;
-        color: var(--color-text);
+        color: var(--color-primary-dark);
         margin: 0;
     }
     .app-footer {
-        border-top: 1px solid var(--color-border);
+        border-top: 1px solid var(--glass-border); /* Light border for definition */
+        box-shadow: var(--glass-shadow); /* Glass shadow */
         position: sticky;
         bottom: 0;
     }
 
     /* Clear Button */
     .clear-history-button {
-        font-size: 0.875rem; /* Slightly increased size */
-        color: #dc2626; /* Red 600 */
-        background-color: #fef2f2; /* Red 50 */
-        padding: 0.5rem 0.75rem; /* Increased padding */
+        font-size: 0.875rem;
+        color: #b91c1c; 
+        background-color: transparent;
+        padding: 0.5rem 0.75rem;
         border-radius: var(--radius-sm);
-        border: 1px solid #fecaca; /* Red 200 */
-        transition: background-color 0.2s;
-        font-weight: 600; /* Added emphasis */
+        border: 1px solid #fecaca;
+        transition: background-color 0.2s, border-color 0.2s;
+        font-weight: 600;
     }
     .clear-history-button:hover {
-        background-color: #fee2e2; /* Red 100 */
+        background-color: #fef2f2;
+        border-color: #dc2626;
     }
 
     /* =================================
-       3. Chat History & Messages
-       ================================= */
+      3. Chat History & Messages
+      ================================= */
 
     .chat-history-container {
         flex: 1;
@@ -280,84 +327,96 @@
     /* Message Rows */
     .message-row {
         display: flex;
-        /* Removed unnecessary classes like 'user-row' and 'model-row' from the CSS 
-           and used the role classes to define alignment for improved clarity */
     }
-    .user-row { /* Keeping user-row for HTML clarity, but using the .chat-message.user style */
+    .user-row {
         justify-content: flex-end;
     }
-    .model-row { /* Keeping model-row for HTML clarity, but using the .chat-message.model style */
+    .model-row {
         justify-content: flex-start;
     }
 
 
     /* Message Bubble */
     .chat-message {
-        max-width: 85%; /* Increased max-width for better use of mobile screen */
-        padding: 0.75rem;
+        max-width: 85%;
+        padding: 0.75rem 1rem;
         border-radius: var(--radius-md);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        font-size: 1rem; /* Increased font-size for better mobile readability */
-        line-height: 1.5; /* Improved line-height */
-        word-wrap: break-word; /* Ensures long words wrap */
-    }
-    @media (max-width: 480px) {
-        .chat-message {
-            max-width: 90%;
-        }
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        font-size: 1rem;
+        line-height: 1.5;
+        word-wrap: break-word;
     }
 
     .chat-message.user {
-        background-color: var(--color-primary);
+        background-color: var(--color-primary); /* Solid Green */
         color: var(--color-user-text);
-        border-bottom-right-radius: var(--space-sm); /* Smaller corner cut */
+        border-top-right-radius: var(--space-sm);
+        border-bottom-right-radius: var(--space-sm);
+        border-top-left-radius: var(--radius-md);
+        border-bottom-left-radius: var(--radius-md);
+        box-shadow: 0 2px 4px rgba(21, 128, 61, 0.3);
     }
 
     .chat-message.model {
-        background-color: var(--color-background-paper);
+        /* Glass effect applied to model bubble for Apple-style contrast */
+        background-color: rgba(255, 255, 255, 0.7); /* Slightly more opaque glass */
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
         color: var(--color-text);
-        border: 1px solid var(--color-border);
-        border-bottom-left-radius: var(--space-sm); /* Smaller corner cut */
+        border: 1px solid rgba(255, 255, 255, 0.8); /* Very light, bright border */
+        border-top-left-radius: var(--space-sm);
+        border-bottom-left-radius: var(--space-sm);
+        border-top-right-radius: var(--radius-md);
+        border-bottom-right-radius: var(--radius-md);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
 
     .message-role {
         font-weight: 600;
         margin-bottom: 0.25rem;
         font-size: 0.75rem;
+        color: #4b5563;
     }
     .chat-message.user .message-role {
         color: var(--color-role-text-user);
     }
 
     /* =================================
-       4. System/Error Messages
-       ================================= */
+      4. System/Error Messages
+      ================================= */
 
     .system-message {
+        /* Glass effect applied here for consistency */
+        background-color: var(--glass-bg-color); 
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+        border: 1px solid var(--glass-border);
+
         padding: var(--space-md);
         border-radius: var(--radius-sm);
         font-size: 0.875rem;
         line-height: 1.4;
+        color: var(--color-text);
     }
     .system-message p {
         margin: 0;
     }
     .system-message.warning {
-        background-color: #fffbeb; /* Yellow 50 */
-        border: 1px solid #fcd34d; /* Yellow 300 */
-        color: #92400e; /* Yellow 800 */
+        background-color: rgba(255, 248, 225, 0.7); /* Light yellow with translucency */
+        border: 1px solid #fcd34d;
+        color: #92400e;
     }
     .system-message.error {
         margin-bottom: var(--space-sm);
-        color: #dc2626; /* Red 600 */
+        color: #dc2626;
         font-weight: 500;
-        background-color: #fef2f2; /* Red 50 */
-        border: none;
+        background-color: rgba(254, 242, 242, 0.7); /* Light red with translucency */
+        border: 1px solid #fecaca;
     }
 
     /* =================================
-       5. Input Form
-       ================================= */
+      5. Input Form
+      ================================= */
 
     .prompt-form {
         display: flex;
@@ -367,15 +426,17 @@
     .prompt-input {
         flex: 1;
         padding: 0.75rem;
-        border: 1px solid #d1d5db;
+        border: 1px solid var(--color-border);
         border-radius: var(--radius-md);
-        font-size: 1rem; /* Increased font-size for mobile readability */
+        font-size: 1rem;
         transition: border-color 0.2s, box-shadow 0.2s;
+        background-color: rgba(255, 255, 255, 0.85); 
     }
     .prompt-input:focus {
         outline: none;
         border-color: var(--color-primary);
-        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.2);
+        background-color: var(--color-background-paper);
     }
     .prompt-input:disabled {
         background-color: #f3f4f6;
@@ -388,18 +449,22 @@
         font-weight: 600;
         border-radius: var(--radius-md);
         transition: background-color 0.2s;
+        border: none;
+        box-shadow: 0 2px 4px rgba(21, 128, 61, 0.2);
     }
     .send-button:hover:not(:disabled) {
         background-color: var(--color-primary-dark);
+        box-shadow: 0 3px 6px rgba(21, 128, 61, 0.3);
     }
     .send-button:disabled {
-        opacity: 0.5;
+        opacity: 0.6;
         cursor: not-allowed;
+        box-shadow: none;
     }
     
     /* =================================
-       6. Loading Animation
-       ================================= */
+      6. Loading Animation
+      ================================= */
 
     .loading-animation {
         display: flex;
@@ -407,16 +472,37 @@
         gap: var(--space-sm);
         color: #6b7280;
     }
+    /* SVG spinner size and style adjustments */
     .spinner {
         animation: spin 1s linear infinite;
         height: 1.25rem;
         width: 1.25rem;
+        transform-origin: center; /* Ensures smooth rotation */
     }
     .spinner circle {
-        stroke: var(--color-border);
+        stroke: var(--color-primary);
+        stroke-dasharray: 80;
+        stroke-dashoffset: 0;
+        stroke-width: 3;
+        stroke-linecap: round;
+        animation: dash 1.5s ease-in-out infinite;
     }
     @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
+    }
+    /* Dash animation for the circle stroke */
+    @keyframes dash {
+        0% {
+            stroke-dashoffset: 120;
+        }
+        50% {
+            stroke-dashoffset: 40;
+            transform: rotate(135deg);
+        }
+        100% {
+            stroke-dashoffset: 120;
+            transform: rotate(360deg);
+        }
     }
 </style>
