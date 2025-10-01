@@ -35,7 +35,6 @@
 
 
 
-        
     // --- Core Logic ---
 
     // Automatically attempts to start the chat session using the hardcoded key
