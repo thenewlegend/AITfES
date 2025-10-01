@@ -70,8 +70,7 @@
         }
 
         const systemInstruction = buildSystemInstruction(structuredConfig);
-        console.log(systemInstruction); // This is the string you pass to the SDK
-
+        //console.log(systemInstruction); // This is the string you pass to the SDK
 
     // --- Core Logic ---
 

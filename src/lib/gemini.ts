@@ -5,7 +5,7 @@ import type { Chat } from '@google/genai';
 
 // 🔑 HARDCODED API KEY
 // NOTE: This key is for demonstration purposes only. Replace it with your actual key.
-const GEMINI_API_KEY = 'AIzaSyDJyLaTsCTblgZTy3BbERRTXXVzLeQWaHs';
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 /**
  * Creates and returns a new Gemini Chat session instance using a hardcoded key.
