@@ -73,8 +73,6 @@
         console.log(systemInstruction); // This is the string you pass to the SDK
 
 
-
-
     // --- Core Logic ---
 
     // Automatically attempts to start the chat session using the hardcoded key
