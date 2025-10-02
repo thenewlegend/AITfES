@@ -33,7 +33,7 @@ export async function createChatSession(systemInstruction: string): Promise<Chat
 				// 1. Initial Greeting/Persona Setup
 				{
 					role: 'model',
-					parts: [{ text: "" }]
+					parts: [{ text: '' }]
 				}
 			]
 		});

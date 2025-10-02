@@ -2,8 +2,8 @@
 
 ### To Do
 
-- [ ] Refocus to input for chat flow.
-- [ ] Welcome message on initialization.
+- [x] Refocus to input for chat flow.
+- [x] Welcome message on initialization.
 - [ ] Custom System Instruction.
 - [x] Build function check.
 - [ ]
