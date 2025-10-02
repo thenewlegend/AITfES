@@ -1,6 +1,11 @@
 ## AI troubleshooting for energy systems using Gemini AI
 
-### Sytem Prompt Structure
+### To Do
+
+- [ ] Refocus to input for chat flow
+
+
+### System Prompt Structure
 
 ```json
  "assistant_config": {

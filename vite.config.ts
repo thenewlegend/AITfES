@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	define: {
-        'process.env': process.env,
-    },plugins: [sveltekit()]
+		'process.env': process.env
+	},
+	plugins: [sveltekit()]
 });

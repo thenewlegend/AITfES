@@ -13,33 +13,32 @@ const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
  * @returns A Promise<Chat> instance.
  */
 export async function createChatSession(systemInstruction: string): Promise<Chat> {
-    
-    if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === '') {
-        throw new Error("Cannot create chat session: API Key is missing or empty.");
-    }
-    
-    try {
-        // 🚀 FIX: Pass the key inside an object with the 'apiKey' property.
-        const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY }); 
+	if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === '') {
+		throw new Error('Cannot create chat session: API Key is missing or empty.');
+	}
 
-        // AWAIT is mandatory here as this is an asynchronous network call
-        const chat = await ai.chats.create({ 
-            model: 'gemini-2.5-flash',
-            config: {
-                systemInstruction: systemInstruction,
-                tools: [{ googleSearch: {} }], 
-            },
-            // 🆕 UPDATED: Initial greeting from the AI (role: 'model')
-            history: [
-                {
-                    role: 'model', // Changed role to 'model'
-                    parts: [{ text: 'WELCOME' }], // The greeting message
-                },
-            ],
-        });
+	try {
+		// 🚀 FIX: Pass the key inside an object with the 'apiKey' property.
+		const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-        return chat;
-    } catch (e) {
-        throw e; 
-    }
+		// AWAIT is mandatory here as this is an asynchronous network call
+		const chat = await ai.chats.create({
+			model: 'gemini-2.5-flash',
+			config: {
+				systemInstruction: systemInstruction,
+				tools: [{ googleSearch: {} }]
+			},
+			// 🆕 UPDATED: Initial greeting from the AI (role: 'model')
+			history: [
+				{
+					role: 'model', // Changed role to 'model'
+					parts: [{ text: 'WELCOME' }] // The greeting message
+				}
+			]
+		});
+
+		return chat;
+	} catch (e) {
+		throw e;
+	}
 }
