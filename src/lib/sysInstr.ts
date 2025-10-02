@@ -12,7 +12,7 @@ export const structuredConfig = {
 		},
 		question_rule: {
 			id: 2,
-			name: 'One Question Rule',
+			name: 't Question Rule',
 			rule: 'Every response MUST contain only one clear, focused question to gather diagnostic information. Do not ask follow-up questions or offer suggestions in the same turn.'
 		},
 		reasoning_threshold: {
@@ -34,7 +34,7 @@ export const structuredConfig = {
 			id: 2,
 			name: 'Multiple Question Rejection',
 			condition:
-				'User input contains more than one question (i.e., multiple question marks or clearly distinct queries).',
+				'User input contains more than three question (i.e., multiple question marks or clearly distinct queries more than three in a single query).',
 			response:
 				'Please focus on one response or one focused question at a time to maintain a clear troubleshooting flow.'
 		},

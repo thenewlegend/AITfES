@@ -30,9 +30,10 @@ export async function createChatSession(systemInstruction: string): Promise<Chat
 			},
 			// 🆕 UPDATED: Initial greeting from the AI (role: 'model')
 			history: [
+				// 1. Initial Greeting/Persona Setup
 				{
-					role: 'model', // Changed role to 'model'
-					parts: [{ text: '' }] // The greeting message
+					role: 'model',
+					parts: [{ text: "" }]
 				}
 			]
 		});
