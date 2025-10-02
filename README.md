@@ -5,7 +5,7 @@
 - [ ] Refocus to input for chat flow.
 - [ ] Welcome message on initialization.
 - [ ] Custom System Instruction.
-- [ x ] Build function check.
+- [x] Build function check.
 - [ ]
 - [ ]
 
