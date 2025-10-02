@@ -2,8 +2,12 @@
 
 ### To Do
 
-- [ ] Refocus to input for chat flow
-
+- [ ] Refocus to input for chat flow.
+- [ ] Welcome message on initialization.
+- [ ] Custom System Instruction.
+- [ ] Build function check.
+- [ ]
+- [ ]
 
 ### System Prompt Structure
 
@@ -25,6 +29,7 @@
         },
         "reasoning_threshold": {
         "id": 3,
+        "name": "The Pause and Reflect Rule",
         "rule": "After 5 consecutive queries, propose some reasoning and then wait for confirmation or rejection from user, If then needed, continue. Do not ever go on a large questioning spree."
         }
     },

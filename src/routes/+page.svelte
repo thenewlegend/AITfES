@@ -50,7 +50,7 @@
 			errorMessage =
 				e instanceof Error
 					? e.message.includes('API Key')
-						? 'Initialization Error: Invalid or missing hardcoded API Key.'
+						? 'Initialization Error: Invalid or missing API Key.'
 						: e.message
 					: 'An unknown error occurred during chat setup.';
 			chat = null;
@@ -127,6 +127,16 @@
 					try {
 						// AWAIT the Promise to get the new Chat object, then assign it
 						chat = await createChatSession(systemInstruction);
+
+						history.update((h) => [
+							...h,
+							{ role: 'model', text: "I'm AITfES 💡" },
+							{ role: 'model', text: 'AI Troubleshooting for Energy Systems' },
+							{
+								role: 'model',
+								text: 'My sole purpose is to guide you to a solution for energy engineering processes and techniques through a focused, step-by-step diagnostic flow.'
+							}
+						]);
 					} catch (error) {
 						// Handle the error if the session fails to start
 						console.error('Failed to renew chat session:', error);
@@ -147,23 +157,6 @@
 	</header>
 
 	<div class="chat-history-container" bind:this={chatContainer}>
-		
-        <div style="text-align: center; width: 100%;">
-			<p
-				style="font-family: Arial, sans-serif; font-size: 1em; color: #333; line-height: 1.5; margin: 0 auto;"
-			>
-				<strong style="color: #007bff; font-size: 1.1em;">I'm AITfES</strong>
-				<br />
-				<strong style="color: #007bff; font-size: 1.1em;"
-					>AI Troubleshooting for Energy Systems</strong
-				>
-				<br />
-				💡
-				<br />
-				My sole purpose is to guide you to a solution for energy engineering processes and techniques through a focused, step-by-step diagnostic flow.
-			</p>
-		</div>
-
 		{#if !chat && !isLoading}
 			<div class="system-message warning">
 				<p class="font-semibold" style="text-align: center;">Chat Session Offline ⚠️</p>
@@ -343,7 +336,7 @@
 	.clear-history-button:hover {
 		background-color: #fef2f2;
 		border-color: #dc2626;
-        cursor:grab;
+		cursor: grab;
 	}
 
 	/* =================================
@@ -491,7 +484,7 @@
 	.send-button:hover:not(:disabled) {
 		background-color: var(--color-primary-dark);
 		box-shadow: 0 3px 6px rgba(21, 128, 61, 0.3);
-        cursor:grab;
+		cursor: grab;
 	}
 	.send-button:disabled {
 		opacity: 0.6;

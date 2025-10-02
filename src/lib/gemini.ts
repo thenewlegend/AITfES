@@ -32,7 +32,7 @@ export async function createChatSession(systemInstruction: string): Promise<Chat
 			history: [
 				{
 					role: 'model', // Changed role to 'model'
-					parts: [{ text: 'WELCOME' }] // The greeting message
+					parts: [{ text: '' }] // The greeting message
 				}
 			]
 		});

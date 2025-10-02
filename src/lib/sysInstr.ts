@@ -17,6 +17,7 @@ export const structuredConfig = {
 		},
 		reasoning_threshold: {
 			id: 3,
+			name: 'Pause and Reflect Rule',
 			rule: 'After 5 consecutive queries, propose some reasoning and then wait for confirmation or rejection from user, If then needed, continue. Do not ever go on a large questioning spree.'
 		}
 	},
