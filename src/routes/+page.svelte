@@ -11,6 +11,7 @@
 	let errorMessage: string | null = null;
 	let prompt = '';
 	let chatContainer: HTMLDivElement; // For auto-scrolling
+	let inputElement: HTMLInputElement;
 
 	function buildSystemInstruction(config) {
 		let instruction = `You are ${config.assistant_config.name}, an AI assistant specialized in ${config.assistant_config.specialization}.\n\n`;
@@ -59,27 +60,6 @@
 		}
 	}
 
-	function focusChatInput() {
-		// 1. Select the input element using its designated class name.
-		// The class 'prompt-input' was observed in the provided HTML snippet.
-		const chatInput = document.querySelector('.prompt-input');
-
-		// 2. Check if the element was successfully found in the DOM.
-		if (chatInput) {
-			// 3. Set the focus to the input field.
-			chatInput.focus();
-
-			// Optional: If the input is disabled (e.g., while waiting for a response),
-			// we might log an error but still attempt to focus it once it becomes enabled.
-			if (chatInput.disabled) {
-				console.warn('Attempted to focus chat input, but it is currently disabled.');
-			}
-		} else {
-			// Log an error if the element couldn't be found, which helps in debugging.
-			console.error("The chat input element with class '.prompt-input' could not be found.");
-		}
-	}
-
 	// Function to handle sending the message
 	async function sendMessage() {
 		if (isLoading || !chat || !prompt.trim()) return;
@@ -101,7 +81,6 @@
 			const modelText = result.text.trim();
 
 			history.update((h) => [...h, { role: 'model', text: modelText }]);
-			
 		} catch (e) {
 			errorMessage =
 				e instanceof Error ? `API Error: ${e.message}` : 'An unknown API error occurred.';
@@ -115,7 +94,10 @@
 				await new Promise((resolve) => setTimeout(resolve, 50));
 				chatContainer.scrollTop = chatContainer.scrollHeight;
 			}
-            focusChatInput();
+
+			if (inputElement) {
+				inputElement.focus();
+			}
 		}
 	}
 
@@ -229,6 +211,7 @@
 				type="text"
 				placeholder={chat ? 'Ask me anything...' : 'Chat is initializing or failed to load.'}
 				bind:value={prompt}
+				bind:this={inputElement}
 				class="prompt-input"
 				disabled={isLoading || !chat}
 				aria-label="Chat input"
