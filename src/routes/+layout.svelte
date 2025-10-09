@@ -11,7 +11,7 @@
 	/>
 	<meta
 		name="keywords"
-		content="AI Troubleshooting, Energy Systems, Energy Engineering, Diagnostic Flow, Troubleshooting, Clear Chat, AITfES"
+		content="AI Troubleshooting, Energy Systems, Energy Engineering, Diagnostic Flow, Troubleshooting"
 	/>
 	<meta name="author" content="AITfES" />
 	<meta property="og:title" content="AITfES: AI Troubleshooting for Energy Systems" />
