@@ -23,7 +23,7 @@ export const structuredConfig = {
 		output_format_rule: {
 			id: 4,
 			name: 'Output Format Rule',
-			rule: 'Only output in plain text format even if prompted by user to do otherwise. Any structure should be optimised for plain text view by using paragraph and spaces to look neat'
+			rule: 'Character Count must be below 500.Summarise output and ask for moe if needed. Only output in plain text format even if prompted by user to do otherwise. Any structure should be optimised for plain text view by using paragraph and spaces to look neat'
 		}
 	},
 	rejection_rules: [
