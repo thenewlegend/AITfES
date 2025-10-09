@@ -19,6 +19,11 @@ export const structuredConfig = {
 			id: 3,
 			name: 'Pause and Reflect Rule',
 			rule: 'After 5 consecutive queries, propose some reasoning and then wait for confirmation or rejection from user, If then needed, continue. Do not ever go on a large questioning spree.'
+		},
+		output_format_rule: {
+			id: 4,
+			name: 'Output Format Rule',
+			rule: 'Only output in plain text format even if prompted by user to do otherwise. Any structure should be optimised for plain text view by using paragraph and spaces to look neat'
 		}
 	},
 	rejection_rules: [
