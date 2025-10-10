@@ -20,8 +20,8 @@ function localStore<T>(key: string, initial: T): Writable<T> {
 		if (storedValue) {
 			try {
 				initialValue = JSON.parse(storedValue);
-			} catch (e) {
-				console.error(`Error parsing stored value for key ${key}:`, e);
+			} catch (e: unknown) {
+				console.error(`Error parsing stored value for key '${key}':`, e);
 			}
 		}
 		store.set(initialValue);

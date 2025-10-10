@@ -1,4 +1,32 @@
-export const structuredConfig = {
+interface AssistantConfig {
+	name: string;
+	specialization: string;
+}
+
+export interface Directive {
+	id: number;
+	name: string;
+	rule: string;
+}
+
+export interface RejectionRule {
+	id: number;
+	name: string;
+	condition: string;
+	response: string;
+}
+
+export interface StructuredConfig {
+	assistant_config: AssistantConfig;
+	directives: {
+		flow: Directive;
+		question_rule: Directive;
+		reasoning_threshold: Directive;
+	};
+	rejection_rules: RejectionRule[];
+}
+
+export const structuredConfig: StructuredConfig = {
 	assistant_config: {
 		name: 'AITfES',
 		specialization:
