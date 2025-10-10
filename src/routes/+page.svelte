@@ -37,7 +37,7 @@
 	// --- Core Logic ---
 
 	// Function to handle clearing history and re-initializing chat
-	aSync function handleClearHistory() {
+	async function handleClearHistory() {
 		isLoading = true;
 		history.set([]);
 
@@ -61,21 +61,21 @@
 	}
 
 	// Automatically attempts to start the chat session using the hardcoded key
-	aSync function startSession() {
-		if (chat) return; 
+	async function startSession() {
+		if (chat) return;
 
 		isLoading = true;
 		errorMessage = null;
 
 		try {
 			// No key parameter needed
-			chat = await createChatSession(systemInstruction); 
+			chat = await createChatSession(systemInstruction);
 		} catch (e) {
-			errorMessage = 
-				e instanceof Error 
-					? e.message.includes('API Key') 
-						? 'Initialization Error: Invalid or missing API Key.' 
-						: e.message 
+			errorMessage =
+				e instanceof Error
+					? e.message.includes('API Key')
+						? 'Initialization Error: Invalid or missing API Key.'
+						: e.message
 					: 'An unknown error occurred during chat setup.';
 			chat = null;
 		} finally {
@@ -84,7 +84,7 @@
 	}
 
 	// Function to handle sending the message
-	aSync function sendMessage() {
+	async function sendMessage() {
 		if (isLoading || !chat || !prompt.trim()) return;
 
 		const userPrompt = prompt.trim();
@@ -105,7 +105,7 @@
 
 			history.update((h) => [...h, { role: 'model', text: modelText }]);
 		} catch (e) {
-			errorMessage = 
+			errorMessage =
 				e instanceof Error ? `API Error: ${e.message}` : 'An unknown API error occurred.';
 			// If the key fails during a message, stop the chat.
 			if (errorMessage.includes('API key')) {
@@ -163,9 +163,9 @@
 					<g id="SVGRepo_iconCarrier"
 						><path
 							d="m 9,9 0.444445,0 0,3.11111 -0.444445,0 z m -0.888889,0 0.444445,0 0,4 -0.444445,0 z m 1.777778,0 0.444444,0 0,3.55556 -0.444444,0 z m -2.666667,0 0.444445,0 0,3.55556 -0.444445,0 z m 4.444445,-1.77778 0,0.88889 -9.333334,0 0,-0.88889 -0.444444,0 0,2.22222 0.444444,0 0,-0.88888 9.333334,0 0,0.88888 0.444444,0 0,-2.22222 z M 10.777778,9 l 0.444444,0 0,4 -0.444444,0 z m -4.444445,0 0.444445,0 0,4 -0.444445,0 z M 11.222222,4.55556 9,4.55556 c -0.488877,0 -0.888889,-0.39999 -0.888889,-0.88889 L 8.111111,1 3.666667,1 C 3.177766,1 2.777778,1.39999 2.777778,1.88889 l 0,5.77778 8.444444,0 0,-3.11111 z M 2.777778,9 l 0.444444,0 0,4 -0.444444,0 z M 9,4.11111 l 2.222222,0 L 8.555556,1 l 0,2.66667 C 8.555556,3.93333 8.77779,4.11111 9,4.11111 Z M 4.555556,9 5,9 5,13 4.555556,13 Z m -0.888889,0 0.444444,0 0,3.55556 -0.444444,0 z m 1.777778,0 0.444444,0 0,3.11111 -0.444444,0 z"
-				></path></g
-				></svg
-			>
+						></path></g
+					></svg
+				>
 			</button>
 		{/if}
 	</header>
@@ -197,7 +197,7 @@
 							<circle cx="12" cy="12" r="10" stroke-width="4" fill="none" stroke="currentColor"
 							></circle>
 							<path
-									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 								fill="var(--color-primary)"
 							></path>
 						</svg>

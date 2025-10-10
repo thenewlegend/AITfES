@@ -22,6 +22,7 @@ export interface StructuredConfig {
 		flow: Directive;
 		question_rule: Directive;
 		reasoning_threshold: Directive;
+		output_format_rule: Directive;
 	};
 	rejection_rules: RejectionRule[];
 }
