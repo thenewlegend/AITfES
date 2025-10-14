@@ -43,16 +43,17 @@
 
 		try {
 			chat = await createChatSession(systemInstruction);
+			let idCounter = Date.now();
 			history.update((h) => [
-				...h,
-				{ role: 'model', text: `I'm ${structuredConfig.assistant_config.name} 💡` },
-				{ role: 'model', text: structuredConfig.assistant_config.specialization },
-				{
-					role: 'model',
-					text: structuredConfig.directives.flow.rule
-				}
-			]);
-		} catch (error) {
+							...h,
+							{ id: idCounter++, role: 'model', text: "I'm AITfES 💡" },
+							{ id: idCounter++, role: 'model', text: 'AI Troubleshooting for Energy Systems' },
+							{
+								id: idCounter++,
+								role: 'model',
+								text: 'My sole purpose is to guide you to a solution for energy engineering processes and techniques through a focused, step-by-step diagnostic flow.'
+							}
+			]);		} catch (error) {
 			console.error('Failed to renew chat session:', error);
 			chat = null;
 		} finally {
@@ -92,7 +93,8 @@
 		isLoading = true;
 		errorMessage = null;
 
-		history.update((h) => [...h, { role: 'user', text: userPrompt }]);
+		const userMessageId = Date.now();
+		history.update((h) => [...h, { id: userMessageId, role: 'user', text: userPrompt }]);
 
 		try {
 			if (chatContainer) {
@@ -103,7 +105,7 @@
 			const result = await chat.sendMessage({ message: userPrompt });
 			const modelText = result.text?.trim() || '';
 
-			history.update((h) => [...h, { role: 'model', text: modelText }]);
+			history.update((h) => [...h, { id: Date.now() + 1, role: 'model', text: modelText }]);
 		} catch (e) {
 			errorMessage =
 				e instanceof Error ? `API Error: ${e.message}` : 'An unknown API error occurred.';
@@ -178,7 +180,7 @@
 			</div>
 		{/if}
 
-		{#each $history as message (message.text)}
+		{#each $history as message (message.id)}
 			<div class="message-row {message.role === 'user' ? 'user-row' : 'model-row'}">
 				<div class="chat-message {message.role}">
 					<p class="message-role">{message.role === 'user' ? 'You' : 'AITfES'}</p>
