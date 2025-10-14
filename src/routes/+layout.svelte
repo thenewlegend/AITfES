@@ -1,5 +1,6 @@
 <script lang="ts">
 	import favicon from '$lib/assets/aitFes.svg';
+	import '$lib/styles/chat.css';
 	let { children } = $props();
 </script>
 
