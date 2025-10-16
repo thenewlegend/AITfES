@@ -5,6 +5,7 @@ import { browser } from '$app/environment';
 
 // Type definition for a single chat message
 export type ChatMessage = {
+	id: number;
 	role: 'user' | 'model'; // Who sent the message
 	text: string; // The content
 };
