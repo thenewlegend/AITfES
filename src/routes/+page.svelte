@@ -3,7 +3,7 @@
 	import type { Chat } from '@google/genai';
 	import { createChatSession } from '$lib/gemini';
 	import { history } from '$lib/stores/stores';
-	import { structuredConfig, type StructuredConfig, type RejectionRule } from '$lib/sysInstr';
+	import { structuredConfig, type StructuredConfig, type RejectionRule } from '$lib/sys';
 
 	// --- State Variables (Keep Local) ---
 	let chat: Chat | null = null;
@@ -45,15 +45,16 @@
 			chat = await createChatSession(systemInstruction);
 			let idCounter = Date.now();
 			history.update((h) => [
-							...h,
-							{ id: idCounter++, role: 'model', text: "I'm AITfES 💡" },
-							{ id: idCounter++, role: 'model', text: 'AI Troubleshooting for Energy Systems' },
-							{
-								id: idCounter++,
-								role: 'model',
-								text: 'My sole purpose is to guide you to a solution for energy engineering processes and techniques through a focused, step-by-step diagnostic flow.'
-							}
-			]);		} catch (error) {
+				...h,
+				{ id: idCounter++, role: 'model', text: "I'm AITfES 💡" },
+				{ id: idCounter++, role: 'model', text: 'AI Troubleshooting for Energy Systems' },
+				{
+					id: idCounter++,
+					role: 'model',
+					text: 'My sole purpose is to guide you to a solution for energy engineering processes and techniques through a focused, step-by-step diagnostic flow.'
+				}
+			]);
+		} catch (error) {
 			console.error('Failed to renew chat session:', error);
 			chat = null;
 		} finally {

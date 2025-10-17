@@ -1,15 +1,34 @@
-## AI troubleshooting for energy systems using Gemini AI
+interface AssistantConfig {
+	name: string;
+	specialization: string;
+}
 
-### To Do
+export interface Directive {
+	id: number;
+	name: string;
+	rule: string;
+}
 
-- [x] Refocus to input for chat flow.
-- [x] Welcome message on initialization.
-- [ ] Custom System Instruction.
-- [x] Build function check.
+export interface RejectionRule {
+	id: number;
+	name: string;
+	condition: string;
+	response: string;
+}
 
-### System Prompt Structure
-```js
-structuredConfig: StructuredConfig = {
+export interface StructuredConfig {
+	assistant_config: AssistantConfig;
+	directives: {
+		flow: Directive;
+		question_rule: Directive;
+		reasoning_threshold: Directive;
+		output_length_rule: Directive;
+		output_style_rule: Directive;
+	};
+	rejection_rules: RejectionRule[];
+}
+
+export const structuredConfig: StructuredConfig = {
 	assistant_config: {
 		name: 'AITfES',
 		specialization:
@@ -68,4 +87,3 @@ structuredConfig: StructuredConfig = {
 		}
 	]
 };
-```

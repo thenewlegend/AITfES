@@ -1,3 +1,4 @@
+
 interface AssistantConfig {
 	name: string;
 	specialization: string;
