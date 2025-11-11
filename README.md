@@ -1,12 +1,20 @@
 ## AI troubleshooting for energy systems using Gemini AI
 
-### To Do
+This project is a web-based AI chatbot designed for troubleshooting energy engineering processes, techniques, and systems. It's built with SvelteKit for the frontend and utilizes the Google Gemini API for its conversational AI capabilities. The application provides a chat interface where users can interact with the AI to diagnose and solve problems in the energy sector.
 
-- [x] Refocus to input for chat flow.
-- [x] Welcome message on initialization.
-- [ ] Custom System Instruction.
-- [x] Build function check.
+The core of the application is a chat interface that guides users through a troubleshooting process by asking focused questions. The AI's behavior is governed by a detailed system instruction that defines its persona, scope, and interaction rules.
 
+## Key Features:
+
+*   **Specialized AI Assistant:** Focused on energy engineering troubleshooting.
+*   **Guided Diagnostics:** AI asks one focused question at a time to gather information.
+*   **Google Gemini Integration:** Powered by the Gemini model for advanced conversational AI.
+*   **Google Search Tool:** Enhances AI's knowledge base with real-time web information.
+*   **Persistent Chat History:** Utilizes local storage for an uninterrupted user experience.
+*   **Modern Web Stack:** Built with SvelteKit and TypeScript for a fast, reactive, and type-safe application.
+*   **Configurable AI Persona:** Detailed system instructions govern AI behavior, ensuring adherence to troubleshooting protocols.
+
+  
 ### System Prompt Structure
 ```js
 structuredConfig: StructuredConfig = {
