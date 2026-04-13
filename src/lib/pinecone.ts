@@ -1,6 +1,5 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 import { PINECONE_API } from '$env/static/private';
-import { embedText } from './gemini';
 
 let pineconeClient: Pinecone | null = null;
 
@@ -16,37 +15,40 @@ function getPinecone(): Pinecone {
 	return pineconeClient;
 }
 
-export async function queryPinecone(queryText: string): Promise<{ ragContext: string; embedData: number[] }> {
+export async function queryPinecone(queryText: string): Promise<{ ragContext: string }> {
 	try {
 		const pc = getPinecone();
 		const index = pc.index('sinvert');
 		const namespace = index.namespace('sinvert-pvs500-600');
 
-		// Generate embedding for the query
-		const embedding = await embedText(queryText);
-
-		const queryResponse = await namespace.query({
-			vector: embedding,
-			topK: 5,
-			includeMetadata: true
+		// @ts-ignore - searchRecords might not be fully typed in all versions yet, or might need specific options.
+		const queryResponse = await namespace.searchRecords({
+			query: {
+				inputs: { text: queryText },
+				topK: 5
+			},
+			fields: ['text'],
+			rerank: {
+				model: 'bge-reranker-v2-m3',
+				rankFields: ['text'],
+				topN: 5
+			}
 		});
 
-		if (!queryResponse.matches || queryResponse.matches.length === 0) {
-			return { ragContext: '', embedData: embedding };
+		if (!queryResponse.result || !queryResponse.result.hits || queryResponse.result.hits.length === 0) {
+			return { ragContext: '' };
 		}
 
-		// Extract context from metadata.
-		// Assuming the text is in 'text' field of metadata. Adjust if the source uses different keys.
-		const contextParts = queryResponse.matches
-			.map((match) => {
-				const metadata = match.metadata as Record<string, any> | undefined;
-				return metadata?.text || '';
+		// Extract context from fields.
+		const contextParts = queryResponse.result.hits
+			.map((hit: any) => {
+				return hit.fields?.text || '';
 			})
-			.filter((t) => t.length > 0);
+			.filter((t: string) => t.length > 0);
 
 		const finalContext = contextParts.join('\n\n');
 		console.log('\n--- [SINVERT:RETRIEVED_CONTEXT] ---\n', finalContext, '\n-----------------------------------\n');
-		return { ragContext: finalContext, embedData: embedding };
+		return { ragContext: finalContext };
 	} catch (error) {
 		const msg = error instanceof Error ? error.message : String(error);
 		console.error(`[SINVERT:PINECONE_STEP] ${msg}`);

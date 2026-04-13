@@ -69,7 +69,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	try {
 		// --- Obtain Vector DB Context ---
-		const { ragContext, embedData } = await queryPinecone(message);
+		const { ragContext } = await queryPinecone(message);
 
 		// --- Call Gemini ---
 		const reply = await sendRagChatMessage(systemInstruction, geminiHistory, message, ragContext, productGreeting);
@@ -77,7 +77,6 @@ export const POST: RequestHandler = async ({ request }) => {
 			reply,
 			debug: {
 				endpoint: '/api/sinvert-chat',
-				pineconeEmbedMatrixSent: embedData,
 				ragContextUsed: ragContext || 'No context matched.'
 			}
 		});

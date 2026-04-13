@@ -51,29 +51,6 @@ export async function sendChatMessage(
 	return result.text?.trim() || '';
 }
 
-/**
- * Server-only module — embeds text using Gemini.
- */
-export async function embedText(text: string): Promise<number[]> {
-	try {
-		const ai = getAi();
-		const response = await ai.models.embedContent({
-			model: 'gemini-embedding-001',
-			contents: text,
-			config: { outputDimensionality: 1024 }
-		});
-
-		if (!response.embeddings || response.embeddings.length === 0 || !response.embeddings[0].values) {
-			throw new Error('Failed to generate embedding');
-		}
-
-		return response.embeddings[0].values;
-	} catch (error) {
-		const msg = error instanceof Error ? error.message : String(error);
-		console.error(`[SINVERT:EMBED_STEP] ${msg}`);
-		throw new Error(`[SINVERT:EMBED_STEP] ${msg}`);
-	}
-}
 
 /**
  * Alternative chat function for RAG that injects external context into the final user message.
