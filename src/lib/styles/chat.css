@@ -187,6 +187,7 @@ html {
 .message-content {
 	font-size: 1.05rem;
 	line-height: 1.6;
+	white-space: pre-wrap; /* Standard for modern chat UIs to respect manual line breaks */
 }
 
 .message-content p {
@@ -242,7 +243,7 @@ html {
 
 }
 
-.prompt-input ::-webkit-scrollbar {
+.prompt-input::-webkit-scrollbar {
 	display: none;
 	/* Chrome, Safari */
 }

@@ -294,9 +294,7 @@
 					<button class="modal-button cancel" on:click={() => (showClearConfirm = false)}>
 						Cancel
 					</button>
-					<button class="modal-button confirm" on:click={handleClearHistory}>
-						Delete Everything
-					</button>
+					<button class="modal-button confirm" on:click={handleClearHistory}> Delete</button>
 				</div>
 			</div>
 		</div>
