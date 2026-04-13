@@ -1,9 +1,12 @@
 /* Premium Dark Theme for AITfES */
 :root {
 	--bg-primary: #0a0a0a;
-	--bg-secondary: rgba(15, 15, 18, 0.85); /* For glassmorphism */
-	--bg-user-bubble: linear-gradient(135deg, #1d976c, #93f9b9); /* Emerald premium gradient */
-	--bg-model-bubble: rgba(255, 255, 255, 0.05); /* very subtle dark glass */
+	--bg-secondary: rgba(15, 15, 18, 0.85);
+	/* For glassmorphism */
+	--bg-user-bubble: linear-gradient(135deg, #1d976c, #93f9b9);
+	/* Emerald premium gradient */
+	--bg-model-bubble: rgba(255, 255, 255, 0.05);
+	/* very subtle dark glass */
 	--text-primary: #ffffff;
 	--text-secondary: #a1a1aa;
 	--text-bubble-user: #000000;
@@ -31,10 +34,17 @@ html {
 	display: flex;
 	flex-direction: column;
 	height: 100vh;
+	/* Fallback for older browsers */
+	height: 100dvh;
 	width: 100%;
 	margin: 0 auto;
 	box-sizing: border-box;
-	position: relative;
+	position: fixed;
+	/* Use fixed for mobile apps to prevent bounce/shift issues */
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
 	overflow: hidden;
 }
 
@@ -43,6 +53,7 @@ html {
 	justify-content: space-between;
 	align-items: center;
 	padding: 16px 32px;
+	padding-top: calc(16px + env(safe-area-inset-top));
 	background: var(--bg-secondary);
 	backdrop-filter: blur(16px);
 	-webkit-backdrop-filter: blur(16px);
@@ -121,7 +132,8 @@ html {
 	padding: 16px 24px;
 	border-radius: 20px;
 	word-wrap: break-word;
-	max-width: 75%; /* Allows for comfortable readability without stretching too wide on 4K */
+	max-width: 75%;
+	/* Allows for comfortable readability without stretching too wide on 4K */
 	min-width: 12rem;
 	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 	animation: slideUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
@@ -173,12 +185,14 @@ html {
 .message-content p {
 	margin: 0 0 12px 0;
 }
+
 .message-content p:last-child {
 	margin-bottom: 0;
 }
 
 .app-footer {
 	padding: 20px 32px;
+	padding-bottom: calc(20px + env(safe-area-inset-bottom));
 	background: var(--bg-secondary);
 	backdrop-filter: blur(16px);
 	-webkit-backdrop-filter: blur(16px);
@@ -290,6 +304,7 @@ html {
 	0% {
 		transform: rotate(0deg);
 	}
+
 	100% {
 		transform: rotate(360deg);
 	}
@@ -299,13 +314,16 @@ html {
 ::-webkit-scrollbar {
 	width: 8px;
 }
+
 ::-webkit-scrollbar-track {
 	background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
 	background: rgba(255, 255, 255, 0.15);
 	border-radius: 10px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
 	background: rgba(255, 255, 255, 0.25);
 }
@@ -314,10 +332,12 @@ html {
 @media (max-width: 768px) {
 	.app-header {
 		padding: 12px 20px;
+		padding-top: calc(12px + env(safe-area-inset-top));
 	}
 
 	.app-footer {
 		padding: 16px 20px;
+		padding-bottom: calc(16px + env(safe-area-inset-bottom));
 	}
 
 	.chat-history-container {
@@ -417,7 +437,8 @@ html {
 }
 
 .modal-button.confirm {
-	background: #ff4d4d; /* Premium Red */
+	background: #ff4d4d;
+	/* Premium Red */
 	color: white;
 	box-shadow: 0 4px 15px rgba(255, 77, 77, 0.2);
 }
@@ -443,6 +464,7 @@ html {
 	from {
 		opacity: 0;
 	}
+
 	to {
 		opacity: 1;
 	}
@@ -453,6 +475,7 @@ html {
 		transform: scale(0.95) translateY(10px);
 		opacity: 0;
 	}
+
 	to {
 		transform: scale(1) translateY(0);
 		opacity: 1;
