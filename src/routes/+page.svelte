@@ -25,10 +25,22 @@
 		}
 	];
 
+	// --- Haptics Logic ---
+	function triggerHaptic(pattern: number | number[]) {
+		if (typeof navigator !== 'undefined' && navigator.vibrate) {
+			try {
+				navigator.vibrate(pattern);
+			} catch (e) {
+				// Ignore if vibration fails
+			}
+		}
+	}
+
 	// --- Core Logic ---
 
 	/** Clears chat history and re-seeds the greeting. */
 	function handleClearHistory() {
+		triggerHaptic([30, 50, 30]);
 		history.set([]);
 		nextId = 0;
 		const greetings: ChatMessage[] = GREETING_MESSAGES.map((g) => ({
@@ -47,6 +59,7 @@
 		if (isLoading || !prompt.trim()) return;
 
 		const userPrompt = prompt.trim();
+		triggerHaptic(10); // Light tap for send
 		prompt = '';
 		isLoading = true;
 		errorMessage = null;
@@ -85,6 +98,7 @@
 				return h;
 			});
 		} catch (e) {
+			triggerHaptic([50, 100, 50, 100, 50]);
 			errorMessage =
 				e instanceof Error ? `API Error: ${e.message}` : 'An unknown API error occurred.';
 		} finally {
@@ -149,7 +163,7 @@
 		</button>
 	</header>
 
-	<div class="chat-history-container" bind:this={chatContainer}>
+	<div class="chat-history-container" aria-live="polite" bind:this={chatContainer}>
 		{#each $history as message (message.id)}
 			<div class="message-row {message.role === 'user' ? 'user-row' : 'model-row'}">
 				<div class="chat-message {message.role}">
