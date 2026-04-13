@@ -9,6 +9,7 @@
 	let prompt = '';
 	let chatContainer: HTMLDivElement;
 	let inputElement: HTMLInputElement;
+	let showClearConfirm = false;
 
 	// --- Monotonic ID generator (§1.3) ---
 	let nextId = 0;
@@ -41,7 +42,7 @@
 
 	/** Clears chat history and re-seeds the greeting. */
 	function handleClearHistory() {
-		triggerHaptic([30, 50, 30]);
+		triggerHaptic([40, 60, 40]); // Stronger haptic for deletion
 		history.set([]);
 		nextId = 0;
 		const greetings: ChatMessage[] = GREETING_MESSAGES.map((g) => ({
@@ -53,6 +54,13 @@
 			return h;
 		});
 		errorMessage = null;
+		showClearConfirm = false;
+	}
+
+	/** Opens the confirmation modal. */
+	function openClearConfirm() {
+		triggerHaptic([20, 10]); // Soft double tap
+		showClearConfirm = true;
 	}
 
 	/** Sends a message to the server API and appends the response to history. */
@@ -144,7 +152,7 @@
 
 		<button
 			title="Delete History"
-			on:click={handleClearHistory}
+			on:click={openClearConfirm}
 			class="clear-history-button"
 			aria-label="Clear Chat History"
 		>
@@ -226,4 +234,25 @@
 			</button>
 		</form>
 	</footer>
+
+	{#if showClearConfirm}
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
+		<!-- svelte-ignore a11y-no-static-element-interactions -->
+		<div class="modal-overlay" on:click={() => (showClearConfirm = false)}>
+			<div class="modal-content" on:click|stopPropagation>
+				<h2 class="modal-title">Clear History?</h2>
+				<p class="modal-description">
+					This action cannot be undone. All your chat history will be permanently deleted.
+				</p>
+				<div class="modal-actions">
+					<button class="modal-button cancel" on:click={() => (showClearConfirm = false)}>
+						Cancel
+					</button>
+					<button class="modal-button confirm" on:click={handleClearHistory}>
+						Delete Everything
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 </div>
