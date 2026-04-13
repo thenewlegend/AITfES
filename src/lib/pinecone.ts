@@ -52,6 +52,7 @@ export async function queryPinecone(queryText: string, collector?: any[]): Promi
 			.filter((t: string) => t.length > 0);
 
 		const finalContext = contextParts.join('\n\n');
+		safeLog('FINAL_RETRIEVED_CONTEXT_STRING', { context: finalContext }, collector);
 		return { ragContext: finalContext };
 	} catch (error) {
 		const msg = error instanceof Error ? error.message : String(error);

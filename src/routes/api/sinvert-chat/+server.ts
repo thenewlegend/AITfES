@@ -69,10 +69,12 @@ export const POST: RequestHandler = async ({ request }) => {
 	}));
 
 	const logs: any[] = [];
+	let ragContext = '';
 
 	try {
 		// --- Obtain Vector DB Context ---
-		const { ragContext } = await queryPinecone(message, logs);
+		const result = await queryPinecone(message, logs);
+		ragContext = result.ragContext;
 
 		// --- Call Gemini ---
 		const reply = await sendRagChatMessage(systemInstruction, geminiHistory, message, ragContext, productGreeting, logs);
@@ -95,7 +97,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			error: errorMessage, 
 			debug: { 
 				endpoint: '/api/sinvert-chat', 
-				stepLogs: logs 
+				stepLogs: logs,
+				ragContextUsed: ragContext || 'No context matched before error.'
 			} 
 		};
 		safeLog('API_RESPONSE_FAILURE', errorResponse, logs);
