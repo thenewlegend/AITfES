@@ -84,7 +84,8 @@ async function runWithFallback(
 	modelPool: string[],
 	operation: (modelName: string) => Promise<any>,
 	label: string,
-	collector?: any[]
+	collector?: any[],
+	onFallback?: (modelName: string, error: string) => void
 ) {
 	let lastError: any = null;
 
@@ -98,8 +99,9 @@ async function runWithFallback(
 			safeLog(`${label}_FALLBACK_TRIGGERED`, { modelAttempted: modelName, error: msg }, collector);
 			console.warn(`[GEMINI:FALLBACK] Model ${modelName} failed for ${label}. Error: ${msg}`);
 			
-			// If it's not a retryable error (like a 400), we might want to stop, 
-			// but for now we'll try the next model in the pool for all errors.
+			if (onFallback) {
+				onFallback(modelName, msg);
+			}
 		}
 	}
 
@@ -112,7 +114,8 @@ async function runWithFallback(
 export async function condenseQuery(
 	history: Array<{ role: string; parts: Array<{ text: string }> }>,
 	message: string,
-	collector?: any[]
+	collector?: any[],
+	onFallback?: (modelName: string, error: string) => void
 ): Promise<{ condensed: string; modelUsed: string }> {
 	const ai = getAi();
 	const historyText = history
@@ -141,7 +144,8 @@ export async function condenseQuery(
 			});
 		},
 		'CONDENSE',
-		collector
+		collector,
+		onFallback
 	);
 
 	const condensed = result.text?.trim() || message;
@@ -159,7 +163,8 @@ export async function sendRagChatMessage(
 	message: string,
 	contextText: string,
 	productGreeting: Array<{ text: string }>,
-	collector?: any[]
+	collector?: any[],
+	onFallback?: (modelName: string, error: string) => void
 ): Promise<{ reply: string; modelUsed: string }> {
 	const ai = getAi();
 	const augmentedMessage = `Context Information from Vector DB:\n---\n${contextText || 'No specific context found in DB.'}\n---\n\nUser Question: ${message}`;
@@ -184,7 +189,8 @@ export async function sendRagChatMessage(
 			return await chat.sendMessage({ message: augmentedMessage });
 		},
 		'RAG_CHAT',
-		collector
+		collector,
+		onFallback
 	);
 
 	const reply = result.text?.trim() || '';

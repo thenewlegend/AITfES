@@ -110,6 +110,13 @@
 		isLoading = true;
 		errorMessage = null;
 
+		if (!isRetry) {
+			prompt = '';
+			if (inputElement) {
+				inputElement.style.height = 'auto'; // Reset text area height
+			}
+		}
+
 		currentStep = 'INITIALIZING...';
 
 		try {
