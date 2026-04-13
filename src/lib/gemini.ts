@@ -166,3 +166,38 @@ export async function sendRagChatMessage(
 
 	return { reply, modelUsed: modelName };
 }
+
+/**
+ * Standard chat function for non-RAG operations.
+ */
+export async function sendChatMessage(
+	systemInstruction: string,
+	history: Array<{ role: string; parts: Array<{ text: string }> }>,
+	message: string,
+	collector?: any[],
+	onFallback?: (modelName: string, error: string) => void,
+	onAttempt?: (modelName: string) => void
+): Promise<{ reply: string; modelUsed: string }> {
+	const ai = getAi();
+
+	const { result, modelName } = await runWithFallback(
+		FULL_MODEL_POOL,
+		async (m) => {
+			const chat = ai.chats.create({
+				model: m,
+				config: { systemInstruction },
+				history: history
+			});
+			return await chat.sendMessage({ message });
+		},
+		'CHAT',
+		collector,
+		onFallback,
+		onAttempt
+	);
+
+	const reply = result.text?.trim() || '';
+	safeLog('GEMINI_CHAT_RESPONSE', { reply, modelUsed: modelName }, collector);
+
+	return { reply, modelUsed: modelName };
+}
