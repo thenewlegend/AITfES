@@ -173,7 +173,6 @@ html {
 .message-role {
 	font-weight: 700;
 	font-size: 0.75rem;
-	text-transform: uppercase;
 	letter-spacing: 0.8px;
 	margin-bottom: 8px;
 	margin-top: 0;
@@ -187,7 +186,8 @@ html {
 .message-content {
 	font-size: 1.05rem;
 	line-height: 1.6;
-	white-space: pre-wrap; /* Standard for modern chat UIs to respect manual line breaks */
+	white-space: pre-wrap;
+	/* Standard for modern chat UIs to respect manual line breaks */
 }
 
 .message-content p {
