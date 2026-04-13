@@ -73,13 +73,15 @@ export const POST: RequestHandler = async ({ request }) => {
 				}));
 
 				// 1. CONDENSING
-				sendStep('CONDENSING QUERY HISTORY', 'gemini-3.1-flash-lite-preview');
 				const { condensed, modelUsed: condenseModel } = await condenseQuery(
 					geminiHistory, 
 					message, 
 					logs,
 					(failedModel) => {
 						sendStep(`FALLBACK: ${failedModel} failed. Switching...`);
+					},
+					(attemptingModel) => {
+						sendStep('CONDENSING QUERY HISTORY', attemptingModel);
 					}
 				);
 				
@@ -90,7 +92,6 @@ export const POST: RequestHandler = async ({ request }) => {
 				sendStep('RAG RESPONSE RETRIEVED');
 
 				// 3. FINAL LLM
-				sendStep('LLM IS PREPARING', 'gemini-2.5-flash');
 				const { reply, modelUsed: chatModel } = await sendRagChatMessage(
 					systemInstruction, 
 					geminiHistory, 
@@ -100,6 +101,9 @@ export const POST: RequestHandler = async ({ request }) => {
 					logs,
 					(failedModel) => {
 						sendStep(`FALLBACK: ${failedModel} failed. Switching...`);
+					},
+					(attemptingModel) => {
+						sendStep('LLM IS PREPARING', attemptingModel);
 					}
 				);
 				

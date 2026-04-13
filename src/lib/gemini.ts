@@ -85,11 +85,13 @@ async function runWithFallback(
 	operation: (modelName: string) => Promise<any>,
 	label: string,
 	collector?: any[],
-	onFallback?: (modelName: string, error: string) => void
+	onFallback?: (modelName: string, error: string) => void,
+	onAttempt?: (modelName: string) => void
 ) {
 	let lastError: any = null;
 
 	for (const modelName of modelPool) {
+		if (onAttempt) onAttempt(modelName);
 		try {
 			const result = await operation(modelName);
 			return { result, modelName };
@@ -115,7 +117,8 @@ export async function condenseQuery(
 	history: Array<{ role: string; parts: Array<{ text: string }> }>,
 	message: string,
 	collector?: any[],
-	onFallback?: (modelName: string, error: string) => void
+	onFallback?: (modelName: string, error: string) => void,
+	onAttempt?: (modelName: string) => void
 ): Promise<{ condensed: string; modelUsed: string }> {
 	const ai = getAi();
 	const historyText = history
@@ -145,7 +148,8 @@ export async function condenseQuery(
 		},
 		'CONDENSE',
 		collector,
-		onFallback
+		onFallback,
+		onAttempt
 	);
 
 	const condensed = result.text?.trim() || message;
@@ -164,7 +168,8 @@ export async function sendRagChatMessage(
 	contextText: string,
 	productGreeting: Array<{ text: string }>,
 	collector?: any[],
-	onFallback?: (modelName: string, error: string) => void
+	onFallback?: (modelName: string, error: string) => void,
+	onAttempt?: (modelName: string) => void
 ): Promise<{ reply: string; modelUsed: string }> {
 	const ai = getAi();
 	const augmentedMessage = `Context Information from Vector DB:\n---\n${contextText || 'No specific context found in DB.'}\n---\n\nUser Question: ${message}`;
@@ -190,7 +195,8 @@ export async function sendRagChatMessage(
 		},
 		'RAG_CHAT',
 		collector,
-		onFallback
+		onFallback,
+		onAttempt
 	);
 
 	const reply = result.text?.trim() || '';

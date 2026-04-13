@@ -187,6 +187,7 @@
 
 							const endTime = performance.now();
 							const durationMs = endTime - startTime;
+							finalStatus = 'Query successful'; // Display success at the end
 
 							const modelMsg: ChatMessage = {
 								id: getNextId(),
