@@ -124,16 +124,18 @@
 			// Trigger haptic feedback for mobile
 			triggerHaptic(50);
 
-			// Optimistically update the UI with the user message
-			const userMsg: ChatMessage = { id: getNextId(), role: 'user', text: userPrompt };
-			historyStore.update((h: ChatMessage[]) => {
-				h.push(userMsg);
-				return h;
-			});
+			if (!isRetry) {
+				// Optimistically update the UI with the user message
+				const userMsg: ChatMessage = { id: getNextId(), role: 'user', text: userPrompt };
+				historyStore.update((h: ChatMessage[]) => {
+					h.push(userMsg);
+					return h;
+				});
 
-			if (chatContainer) {
-				await new Promise((resolve) => setTimeout(resolve, 50));
-				chatContainer.scrollTop = chatContainer.scrollHeight;
+				if (chatContainer) {
+					await new Promise((resolve) => setTimeout(resolve, 50));
+					chatContainer.scrollTop = chatContainer.scrollHeight;
+				}
 			}
 
 			// Capture current history
