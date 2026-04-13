@@ -178,9 +178,16 @@
 							currentStep = event.model ? `${event.label} : ${event.model}` : event.label;
 							finalStatus = currentStep; // Keep track of the last known status
 						} else if (event.type === 'error') {
-							errorMessage = event.error;
+							// Clean up the error message for the UI
+							let cleanError = event.error || 'The system encountered an unexpected issue with the RAG pipeline.';
+							if (cleanError.length > 200) {
+								cleanError = cleanError.slice(0, 197) + '...';
+							}
+							errorMessage = cleanError;
+							
 							if (event.debug) renderDebugLogs(event.debug);
 							isLoading = false;
+							currentStep = '';
 							return;
 						} else if (event.type === 'final') {
 							if (event.debug) renderDebugLogs(event.debug, event.reply);

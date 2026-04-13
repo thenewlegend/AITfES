@@ -14,68 +14,40 @@ function getAi() {
  * Safely extracts a readable message from potentially complex Gemini error objects.
  */
 function extractErrorMessage(error: any): string {
-    const rawMsg = error instanceof Error ? error.message : String(error);
-    try {
-        // Attempt to parse if it's a JSON string from the SDK
-        const parsed = JSON.parse(rawMsg);
-        if (parsed?.error?.message) return parsed.error.message;
-        if (parsed?.message) return parsed.message;
-    } catch {
-        // Not JSON, continue with regex cleanup
-    }
-    
-    // Fallback: strip common technical prefixes but keep the core message
-    return rawMsg.replace(/^\[.*?\]\s*/, '').trim();
+	const rawMsg = error instanceof Error ? error.message : String(error);
+
+	// Check for common quota/rate limit text
+	if (rawMsg.includes('quota') || rawMsg.includes('429') || rawMsg.includes('RESOURCE_EXHAUSTED')) {
+		return "The AI service is currently at maximum capacity. Switching to a backup model...";
+	}
+
+	try {
+		const parsed = JSON.parse(rawMsg);
+		if (parsed?.error?.message) return parsed.error.message;
+		if (parsed?.message) return parsed.message;
+	} catch {
+		// Not JSON
+	}
+
+	return rawMsg.replace(/^\[.*?\]\s*/, '').trim();
 }
 
 /**
- * Server-only module — sends a single chat message to Gemini with conversation history.
- *
- * @param systemInstruction - The system prompt for the model.
- * @param history - Prior conversation turns in Gemini Content format.
- * @param message - The new user message to send.
- * @returns The model's reply text.
+ * List of available models in preferred order (Speed/Lite -> Flash -> Pro)
  */
-export async function sendChatMessage(
-	systemInstruction: string,
-	history: Array<{ role: string; parts: Array<{ text: string }> }>,
-	message: string,
-	collector?: any[]
-): Promise<string> {
-	const ai = getAi();
+const FULL_MODEL_POOL = [
+	'gemini-3.1-flash-lite-preview',
+	'gemini-3-flash-preview',
+	'gemini-2.5-flash',
+	'gemini-3.1-pro-preview',
+	'gemini-2.5-pro',
+	'gemma-4-31b-it'
+];
 
-	const chat = ai.chats.create({
-		model: 'gemini-2.5-flash',
-		config: {
-			systemInstruction: systemInstruction,
-			tools: [{ googleSearch: {} }]
-		},
-		history: [
-			// Seed the greeting so the model knows its own opening
-			{
-				role: 'model',
-				parts: [
-					{ text: "I'm AITfES 💡" },
-					{ text: 'AI Troubleshooting for Energy Systems' },
-					{
-						text: 'My sole purpose is to guide you to a solution for energy engineering processes and techniques through a focused, step-by-step diagnostic flow.'
-					}
-				]
-			},
-			// Then replay the actual conversation history
-			...history
-		]
-	});
-
-	const result = await chat.sendMessage({ message });
-	const reply = result.text?.trim() || '';
-
-	safeLog('GEMINI_RESPONSE', { reply }, collector);
-
-	return reply;
-}
-
-
+/**
+ * Helper to wait for a specific duration (ms)
+ */
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Internal helper to run a Gemini operation with a pool of models for fallback.
@@ -100,10 +72,13 @@ async function runWithFallback(
 			const msg = extractErrorMessage(error);
 			safeLog(`${label}_FALLBACK_TRIGGERED`, { modelAttempted: modelName, error: msg }, collector);
 			console.warn(`[GEMINI:FALLBACK] Model ${modelName} failed for ${label}. Error: ${msg}`);
-			
+
 			if (onFallback) {
 				onFallback(modelName, msg);
 			}
+
+			// ARTIFICIAL DELAY: Let the user read the fallback status in the UI
+			await sleep(800);
 		}
 	}
 
@@ -128,15 +103,8 @@ export async function condenseQuery(
 
 	const queryPrompt = `HISTORY:\n${historyText}\n\nUSER MESSAGE:\n${message}\n\nSTANDALONE QUERY:`;
 
-	// Models to try in order
-	const pool = [
-		'gemini-3.1-flash-lite-preview',
-		'gemini-3-flash-preview',
-		'gemini-2.5-flash'
-	];
-
 	const { result, modelName } = await runWithFallback(
-		pool,
+		FULL_MODEL_POOL,
 		async (m) => {
 			return await ai.models.generateContent({
 				model: m,
@@ -154,7 +122,7 @@ export async function condenseQuery(
 
 	const condensed = result.text?.trim() || message;
 	safeLog('CONDENSED_QUERY_GENERATED', { original: message, condensed, modelUsed: modelName }, collector);
-	
+
 	return { condensed, modelUsed: modelName };
 }
 
@@ -174,14 +142,8 @@ export async function sendRagChatMessage(
 	const ai = getAi();
 	const augmentedMessage = `Context Information from Vector DB:\n---\n${contextText || 'No specific context found in DB.'}\n---\n\nUser Question: ${message}`;
 
-	const pool = [
-		'gemini-2.5-flash',
-		'gemini-3-flash-preview',
-		'gemini-2.5-pro'
-	];
-
 	const { result, modelName } = await runWithFallback(
-		pool,
+		FULL_MODEL_POOL,
 		async (m) => {
 			const chat = ai.chats.create({
 				model: m,
