@@ -10,6 +10,24 @@ function getAi() {
 	return new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 }
 
+/** 
+ * Safely extracts a readable message from potentially complex Gemini error objects.
+ */
+function extractErrorMessage(error: any): string {
+    const rawMsg = error instanceof Error ? error.message : String(error);
+    try {
+        // Attempt to parse if it's a JSON string from the SDK
+        const parsed = JSON.parse(rawMsg);
+        if (parsed?.error?.message) return parsed.error.message;
+        if (parsed?.message) return parsed.message;
+    } catch {
+        // Not JSON, continue with regex cleanup
+    }
+    
+    // Fallback: strip common technical prefixes but keep the core message
+    return rawMsg.replace(/^\[.*?\]\s*/, '').trim();
+}
+
 /**
  * Server-only module — sends a single chat message to Gemini with conversation history.
  *
@@ -95,9 +113,9 @@ export async function sendRagChatMessage(
 
 		return reply;
 	} catch (error) {
-		const msg = error instanceof Error ? error.message : String(error);
+		const msg = extractErrorMessage(error);
 		console.error(`[SINVERT:LLM_STEP] ${msg}`);
-		throw new Error(`[SINVERT:LLM_STEP] ${msg}`);
+		throw new Error(msg);
 	}
 }
 
@@ -121,7 +139,7 @@ export async function condenseQuery(
 		const queryPrompt = `HISTORY:\n${historyText}\n\nUSER MESSAGE:\n${message}\n\nSTANDALONE QUERY:`;
 
 		const result = await ai.models.generateContent({
-			model: 'gemini-2.5-flash',
+			model: 'gemini-3.1-flash-lite-preview',
 			config: {
 				systemInstruction: 'You are a search query optimizer. Given a chat history and a new user message, rewrite the message into a concise, standalone objective search query that captures all necessary context. Do not answer the question. Only output the search query itself.'
 			},
@@ -133,11 +151,11 @@ export async function condenseQuery(
 		safeLog('CONDENSED_QUERY_GENERATED', { original: message, condensed }, collector);
 		return condensed;
 	} catch (error) {
-		const msg = error instanceof Error ? error.message : String(error);
+		const msg = extractErrorMessage(error);
 		safeLog('CONDENSE_STEP_FAILURE', { error: msg }, collector);
 		console.error(`[SINVERT:CONDENSE_STEP] ${msg}`);
 
 		// DO NOT Fallback - throw so the API handler can report the failure
-		throw new Error(`[CONDENSATION_FAILURE] ${msg}`);
+		throw new Error(msg);
 	}
 }
