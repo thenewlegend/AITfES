@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { history, type ChatMessage } from '$lib/stores/stores';
+	import favicon from '$lib/assets/aitFes.svg';
 
 	// --- State Variables ---
 	let isLoading = false;
@@ -136,7 +137,11 @@
 
 <div class="chat-app">
 	<header class="app-header">
-		<h1 class="header-title">AITfES</h1>
+		<div style="display:flex; align-items: center; justify-content: center; margin:auto">
+			<img src={favicon} alt="logo" class="logo" />
+			<h1 class="header-title">AITfES</h1>
+		</div>
+
 		<button
 			title="Delete History"
 			on:click={handleClearHistory}
