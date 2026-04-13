@@ -106,6 +106,7 @@
 
 		if (isLoading || !userPrompt) return;
 
+		const startTime = performance.now();
 		triggerHaptic(10); // Light tap for send
 		isLoading = true;
 		errorMessage = null;
@@ -117,7 +118,7 @@
 			}
 		}
 
-		currentStep = 'INITIALIZING...';
+		currentStep = ''; // Reset for the generic "Thinking..." initially
 
 		try {
 			// Trigger haptic feedback for mobile
@@ -157,6 +158,7 @@
 			const reader = res.body?.getReader();
 			const decoder = new TextDecoder();
 			let buffer = '';
+			let finalStatus = '';
 
 			if (!reader) throw new Error('Streaming failed.');
 
@@ -174,6 +176,7 @@
 						const event = JSON.parse(line);
 						if (event.type === 'step') {
 							currentStep = event.model ? `${event.label} : ${event.model}` : event.label;
+							finalStatus = currentStep; // Keep track of the last known status
 						} else if (event.type === 'error') {
 							errorMessage = event.error;
 							if (event.debug) renderDebugLogs(event.debug);
@@ -181,7 +184,19 @@
 							return;
 						} else if (event.type === 'final') {
 							if (event.debug) renderDebugLogs(event.debug, event.reply);
-							const modelMsg: ChatMessage = { id: getNextId(), role: 'model', text: event.reply };
+
+							const endTime = performance.now();
+							const durationMs = endTime - startTime;
+
+							const modelMsg: ChatMessage = {
+								id: getNextId(),
+								role: 'model',
+								text: event.reply,
+								metadata: {
+									modelInfo: finalStatus,
+									durationMs
+								}
+							};
 							historyStore.update((h: ChatMessage[]) => {
 								h.push(modelMsg);
 								return h;
@@ -335,6 +350,16 @@
 					<div class="message-content">
 						{message.text}
 					</div>
+					{#if message.role === 'model' && message.metadata}
+						<div class="message-metadata">
+							{#if message.metadata.modelInfo}
+								<span>{message.metadata.modelInfo}</span>
+							{/if}
+							{#if message.metadata.durationMs}
+								<span>| {(message.metadata.durationMs / 1000).toFixed(1)}s</span>
+							{/if}
+						</div>
+					{/if}
 					{#if message.role === 'user' && i === $historyStore.length - 1 && !isLoading}
 						<button type="button" class="retry-button inline" on:click={retryLastMessage}>
 							Retry
@@ -356,8 +381,13 @@
 								fill="var(--color-primary)"
 							></path>
 						</svg>
-						<p>{currentStep || 'Thinking...'}</p>
+						<p>Thinking...</p>
 					</div>
+					{#if currentStep}
+						<div class="message-metadata" style="margin-left: 12px; opacity: 0.6;">
+							{currentStep}
+						</div>
+					{/if}
 				</div>
 			</div>
 		{/if}

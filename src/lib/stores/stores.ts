@@ -14,6 +14,10 @@ export type ChatMessage = {
 	id: number;
 	role: 'user' | 'model';
 	text: string;
+	metadata?: {
+		modelInfo?: string;
+		durationMs?: number;
+	};
 };
 
 /**
