@@ -74,39 +74,39 @@ export const POST: RequestHandler = async ({ request }) => {
 
 				// 1. CONDENSING
 				const { condensed, modelUsed: condenseModel } = await condenseQuery(
-					geminiHistory, 
-					message, 
+					geminiHistory,
+					message,
 					logs,
 					(failedModel) => {
 						sendStep(`FALLBACK: ${failedModel} failed. Switching...`);
 					},
 					(attemptingModel) => {
-						sendStep('CONDENSING QUERY HISTORY', attemptingModel);
+						sendStep('Preparing RAG Query', attemptingModel);
 					}
 				);
-				
+
 				// 2. SEARCH
-				sendStep('QUERY SENT TO RAG');
+				sendStep('Querying Vector DB');
 				const result = await queryPinecone(condensed, logs);
 				ragContext = result.ragContext;
 				sendStep('RAG RESPONSE RETRIEVED');
 
 				// 3. FINAL LLM
 				const { reply, modelUsed: chatModel } = await sendRagChatMessage(
-					systemInstruction, 
-					geminiHistory, 
-					message, 
-					ragContext, 
-					productGreeting, 
+					systemInstruction,
+					geminiHistory,
+					message,
+					ragContext,
+					productGreeting,
 					logs,
 					(failedModel) => {
 						sendStep(`FALLBACK: ${failedModel} failed. Switching...`);
 					},
 					(attemptingModel) => {
-						sendStep('LLM IS PREPARING', attemptingModel);
+						sendStep('Preparing Final Response', attemptingModel);
 					}
 				);
-				
+
 				const responseData = {
 					reply,
 					debug: {
