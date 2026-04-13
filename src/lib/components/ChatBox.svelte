@@ -25,6 +25,7 @@
 	let chatContainer = $state<HTMLDivElement | null>(null);
 	let inputElement = $state<HTMLTextAreaElement | null>(null);
 	let showClearConfirm = $state(false);
+	let currentStep = $state('');
 
 	// --- Device Detection ---
 	let isMobile = $state(false);
@@ -109,33 +110,30 @@
 		isLoading = true;
 		errorMessage = null;
 
-		if (!isRetry) {
-			prompt = '';
-			if (inputElement) {
-				inputElement.style.height = 'auto'; // Reset text area height
-			}
+		currentStep = 'INITIALIZING...';
 
-			// Add user message to history
+		try {
+			// Trigger haptic feedback for mobile
+			triggerHaptic(50);
+
+			// Optimistically update the UI with the user message
 			const userMsg: ChatMessage = { id: getNextId(), role: 'user', text: userPrompt };
 			historyStore.update((h: ChatMessage[]) => {
 				h.push(userMsg);
 				return h;
 			});
-		}
 
-		try {
 			if (chatContainer) {
 				await new Promise((resolve) => setTimeout(resolve, 50));
 				chatContainer.scrollTop = chatContainer.scrollHeight;
 			}
 
-			// Capture the store value using derived or local subscription. Svelte 5 makes $store work if in component
+			// Capture current history
 			let currentHistory: ChatMessage[] = [];
 			historyStore.subscribe((val: ChatMessage[]) => {
 				currentHistory = val;
-			})(); // Immediately unsubscribe
+			})();
 
-			// Build the history payload (strip `id` — server doesn't need it)
 			const historyPayload = currentHistory.map(({ role, text }) => ({ role, text }));
 
 			const res = await fetch(apiEndpoint, {
@@ -145,55 +143,58 @@
 			});
 
 			if (!res.ok) {
-				let statusString = `${res.status}`;
-				let detailedError = '';
-				let errorData: any = null;
-				try {
-					errorData = await res.json();
-					if (errorData?.error?.status) {
-						statusString = errorData.error.status;
-					} else if (errorData?.status) {
-						statusString = errorData.status;
+				throw new Error(`Server error: ${res.status}`);
+			}
+
+			// Streaming response handling
+			const reader = res.body?.getReader();
+			const decoder = new TextDecoder();
+			let buffer = '';
+
+			if (!reader) throw new Error('Streaming failed.');
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				buffer += decoder.decode(value, { stream: true });
+				const lines = buffer.split('\n');
+				buffer = lines.pop() || '';
+
+				for (const line of lines) {
+					if (!line.trim()) continue;
+					try {
+						const event = JSON.parse(line);
+						if (event.type === 'step') {
+							currentStep = event.model ? `${event.label} : ${event.model}` : event.label;
+						} else if (event.type === 'error') {
+							errorMessage = event.error;
+							if (event.debug) renderDebugLogs(event.debug);
+							isLoading = false;
+							return;
+						} else if (event.type === 'final') {
+							if (event.debug) renderDebugLogs(event.debug, event.reply);
+							const modelMsg: ChatMessage = { id: getNextId(), role: 'model', text: event.reply };
+							historyStore.update((h: ChatMessage[]) => {
+								h.push(modelMsg);
+								return h;
+							});
+						}
+					} catch (e) {
+						console.error('Parse error:', e);
 					}
-					if (errorData?.error) {
-						detailedError = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
-					}
-					
-					// Log debug info even on failure
-					if (errorData?.debug) {
-						renderDebugLogs(errorData.debug);
-					}
-				} catch (jsonErr) {
-					// Fallback
 				}
-				errorMessage = `STATUS: ${statusString} — ${detailedError || 'API ratelimit likely exceeded. Kindly wait for a reset.'}`;
-				return;
 			}
-
-			const data = await res.json();
-
-			if (data.debug) {
-				renderDebugLogs(data.debug, data.reply);
-			}
-
-			const modelMsg: ChatMessage = { id: getNextId(), role: 'model', text: data.reply };
-			historyStore.update((h: ChatMessage[]) => {
-				h.push(modelMsg);
-				return h;
-			});
 		} catch (e) {
-			triggerHaptic([50, 100, 50, 100, 50]);
-			errorMessage =
-				'STATUS: Since the app is not production ready likely the API ratelimit has been exceeded. Kindly wait for a reset.';
+			errorMessage = e instanceof Error ? e.message : 'Unknown error';
 		} finally {
 			isLoading = false;
+			currentStep = '';
 			if (chatContainer) {
 				await new Promise((resolve) => setTimeout(resolve, 50));
 				chatContainer.scrollTop = chatContainer.scrollHeight;
 			}
-			if (inputElement) {
-				inputElement.focus();
-			}
+			if (inputElement) inputElement.focus();
 		}
 	}
 
@@ -339,7 +340,7 @@
 								fill="var(--color-primary)"
 							></path>
 						</svg>
-						<p>Thinking...</p>
+						<p>{currentStep || 'Thinking...'}</p>
 					</div>
 				</div>
 			</div>

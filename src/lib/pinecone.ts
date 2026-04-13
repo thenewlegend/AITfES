@@ -22,7 +22,7 @@ export async function queryPinecone(queryText: string, collector?: any[]): Promi
 		const index = pc.index('sinvert');
 		const namespace = index.namespace('sinvert-pvs500-600');
 
-		safeLog('TEXT_SENT_TO_EMBED', { query: queryText }, collector);
+		safeLog('TEXT_SENT_TO_PINECONE', { query: queryText }, collector);
 
 		// @ts-ignore - searchRecords might not be fully typed in all versions yet, or might need specific options.
 		const queryResponse = await namespace.searchRecords({

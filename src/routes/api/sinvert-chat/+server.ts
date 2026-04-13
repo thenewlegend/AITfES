@@ -37,76 +37,93 @@ const productGreeting = [
 
 /** POST /api/sinvert-chat */
 export const POST: RequestHandler = async ({ request }) => {
-	// --- Validate request body ---
-	let body: unknown;
-	try {
-		body = await request.json();
-	} catch {
-		return json({ error: 'Invalid JSON in request body.' }, { status: 400 });
-	}
-
-	if (
-		typeof body !== 'object' ||
-		body === null ||
-		typeof (body as Record<string, unknown>).message !== 'string'
-	) {
-		return json({ error: 'Missing or invalid "message" field.' }, { status: 400 });
-	}
-
-	const { message, history } = body as {
-		message: string;
-		history?: Array<{ role: 'user' | 'model'; text: string }>;
-	};
-
-	if (!message.trim()) {
-		return json({ error: 'Message cannot be empty.' }, { status: 400 });
-	}
-
-	// --- Convert ChatMessage[] history to Gemini Content[] format ---
-	const geminiHistory = (history ?? []).map((m) => ({
-		role: m.role,
-		parts: [{ text: m.text }]
-	}));
-
+	const encoder = new TextEncoder();
 	const logs: any[] = [];
 	let ragContext = '';
 
-	try {
-		// --- Condense Query for search relevancy ---
-		const condensedMessage = await condenseQuery(geminiHistory, message, logs);
+	const stream = new ReadableStream({
+		async start(controller) {
+			const sendStep = (label: string, model?: string) => {
+				controller.enqueue(encoder.encode(JSON.stringify({ type: 'step', label, model }) + '\n'));
+			};
 
-		// --- Obtain Vector DB Context ---
-		const result = await queryPinecone(condensedMessage, logs);
-		ragContext = result.ragContext;
+			try {
+				// --- Validate request body ---
+				let body: any;
+				try {
+					const text = await request.text();
+					body = JSON.parse(text);
+				} catch {
+					controller.enqueue(encoder.encode(JSON.stringify({ type: 'error', error: 'Invalid JSON in request body.' }) + '\n'));
+					controller.close();
+					return;
+				}
 
-		// --- Call Gemini ---
-		const reply = await sendRagChatMessage(systemInstruction, geminiHistory, message, ragContext, productGreeting, logs);
-		const responseData = {
-			reply,
-			debug: {
-				endpoint: '/api/sinvert-chat',
-				originalMessage: message,
-				condensedMessage: condensedMessage,
-				ragContextUsed: ragContext || 'No context matched.',
-				stepLogs: logs
+				const { message, history } = body;
+				if (!message?.trim()) {
+					controller.enqueue(encoder.encode(JSON.stringify({ type: 'error', error: 'Message cannot be empty.' }) + '\n'));
+					controller.close();
+					return;
+				}
+
+				// --- Convert history ---
+				const geminiHistory = (history ?? []).map((m: any) => ({
+					role: m.role,
+					parts: [{ text: m.text }]
+				}));
+
+				// 1. CONDENSING
+				sendStep('CONDENSING QUERY HISTORY', 'gemini-3.1-flash-lite-preview');
+				const { condensed, modelUsed: condenseModel } = await condenseQuery(geminiHistory, message, logs);
+				
+				// 2. SEARCH
+				sendStep('QUERY SENT TO RAG');
+				const result = await queryPinecone(condensed, logs);
+				ragContext = result.ragContext;
+				sendStep('RAG RESPONSE RETRIEVED');
+
+				// 3. FINAL LLM
+				sendStep('LLM IS PREPARING', 'gemini-2.5-flash');
+				const { reply, modelUsed: chatModel } = await sendRagChatMessage(systemInstruction, geminiHistory, message, ragContext, productGreeting, logs);
+				
+				const responseData = {
+					reply,
+					debug: {
+						endpoint: '/api/sinvert-chat',
+						originalMessage: message,
+						condensedMessage: condensed,
+						ragContextUsed: ragContext || 'No context matched.',
+						stepLogs: logs,
+						modelsUsed: { condensation: condenseModel, chat: chatModel }
+					}
+				};
+
+				safeLog('API_RESPONSE_SINVERT', responseData, logs);
+				controller.enqueue(encoder.encode(JSON.stringify({ type: 'final', ...responseData }) + '\n'));
+			} catch (e) {
+				console.error('[SINVERT:STREAM_ERROR]', e);
+				const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred during RAG pipeline execution.';
+				const errorResponse = {
+					error: errorMessage,
+					debug: {
+						endpoint: '/api/sinvert-chat',
+						stepLogs: logs,
+						ragContextUsed: ragContext || 'No context matched before error.'
+					}
+				};
+				safeLog('API_RESPONSE_FAILURE', errorResponse, logs);
+				controller.enqueue(encoder.encode(JSON.stringify({ type: 'error', ...errorResponse }) + '\n'));
+			} finally {
+				controller.close();
 			}
-		};
+		}
+	});
 
-		safeLog('API_RESPONSE_SINVERT', responseData, logs);
-
-		return json(responseData);
-	} catch (e) {
-		console.error('[SINVERT:ROUTE_CATCH] Uncaught error reached the top-level route endpoint:', e);
-		const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred during RAG pipeline execution.';
-		const errorResponse = {
-			error: errorMessage,
-			debug: {
-				endpoint: '/api/sinvert-chat',
-				stepLogs: logs,
-				ragContextUsed: ragContext || 'No context matched before error.'
-			}
-		};
-		safeLog('API_RESPONSE_FAILURE', errorResponse, logs);
-		return json(errorResponse, { status: 500 });
-	}
+	return new Response(stream, {
+		headers: {
+			'Content-Type': 'application/x-ndjson',
+			'Cache-Control': 'no-cache',
+			'Connection': 'keep-alive'
+		}
+	});
 };
