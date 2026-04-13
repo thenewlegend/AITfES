@@ -71,11 +71,16 @@
 		showClearConfirm = true;
 	}
 
+	function handleFormSubmit(event: Event) {
+		event.preventDefault();
+		performMessageSend();
+	}
+
 	function handleKeydown(event: KeyboardEvent) {
 		// On mobile, let "Enter" default to a new line. On desktop, "Enter" without Shift sends message.
 		if (event.key === 'Enter' && !event.shiftKey && !isMobile) {
 			event.preventDefault();
-			sendMessage();
+			performMessageSend();
 		}
 	}
 
@@ -94,24 +99,29 @@
 	}
 
 	/** Sends a message to the server API and appends the response to history. */
-	async function sendMessage() {
-		if (isLoading || !prompt.trim()) return;
+	async function performMessageSend(overridePrompt?: string) {
+		const isRetry = typeof overridePrompt === 'string';
+		const userPrompt = (isRetry ? overridePrompt : prompt).trim();
 
-		const userPrompt = prompt.trim();
+		if (isLoading || !userPrompt) return;
+
 		triggerHaptic(10); // Light tap for send
-		prompt = '';
-		if (inputElement) {
-			inputElement.style.height = 'auto'; // Reset text area height
-		}
 		isLoading = true;
 		errorMessage = null;
 
-		// Add user message to history
-		const userMsg: ChatMessage = { id: getNextId(), role: 'user', text: userPrompt };
-		historyStore.update((h: ChatMessage[]) => {
-			h.push(userMsg);
-			return h;
-		});
+		if (!isRetry) {
+			prompt = '';
+			if (inputElement) {
+				inputElement.style.height = 'auto'; // Reset text area height
+			}
+
+			// Add user message to history
+			const userMsg: ChatMessage = { id: getNextId(), role: 'user', text: userPrompt };
+			historyStore.update((h: ChatMessage[]) => {
+				h.push(userMsg);
+				return h;
+			});
+		}
 
 		try {
 			if (chatContainer) {
@@ -189,7 +199,17 @@
 			}
 		}
 	}
-
+	function retryLastMessage() {
+		let currentHistory: ChatMessage[] = [];
+		historyStore.subscribe((val: ChatMessage[]) => {
+			currentHistory = val;
+		})();
+		
+		const lastUserMsg = [...currentHistory].reverse().find(m => m.role === 'user');
+		if (lastUserMsg) {
+			performMessageSend(lastUserMsg.text);
+		}
+	}
 	// Seed the ID counter from persisted history on mount
 	onMount(() => {
 		isMobile =
@@ -268,13 +288,18 @@
 	</header>
 
 	<div class="chat-history-container" aria-live="polite" bind:this={chatContainer}>
-		{#each $historyStore as message (message.id)}
+		{#each $historyStore as message, i (message.id)}
 			<div class="message-row {message.role === 'user' ? 'user-row' : 'model-row'}">
 				<div class="chat-message {message.role}">
 					<p class="message-role">{message.role === 'user' ? 'You' : title}</p>
 					<div class="message-content">
 						{message.text}
 					</div>
+					{#if message.role === 'user' && i === $historyStore.length - 1 && !isLoading}
+						<button type="button" class="retry-button inline" on:click={retryLastMessage}>
+							Retry
+						</button>
+					{/if}
 				</div>
 			</div>
 		{/each}
@@ -301,11 +326,11 @@
 	<footer class="app-footer">
 		{#if errorMessage}
 			<div class="system-message error">
-				{errorMessage}
+				<span>{errorMessage}</span>
 			</div>
 		{/if}
 
-		<form on:submit|preventDefault={sendMessage} class="prompt-form">
+		<form on:submit={handleFormSubmit} class="prompt-form">
 			<textarea
 				placeholder="Ask me anything..."
 				bind:value={prompt}
