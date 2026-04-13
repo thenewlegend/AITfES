@@ -1,0 +1,349 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import type { Writable } from 'svelte/store';
+	import type { ChatMessage } from '$lib/stores/stores';
+	import favicon from '$lib/assets/aitFes.svg';
+
+	let { 
+		apiEndpoint = '/api/chat',
+		historyStore,
+		title = 'AITfES',
+		subtitle = '',
+		greetings = []
+	} = $props<{
+		apiEndpoint?: string;
+		historyStore: Writable<ChatMessage[]>;
+		title?: string;
+		subtitle?: string;
+		greetings?: Omit<ChatMessage, 'id'>[];
+	}>();
+
+	// --- State Variables ---
+	let isLoading = $state(false);
+	let errorMessage = $state<string | null>(null);
+	let prompt = $state('');
+	let chatContainer = $state<HTMLDivElement | null>(null);
+	let inputElement = $state<HTMLTextAreaElement | null>(null);
+	let showClearConfirm = $state(false);
+
+	// --- Device Detection ---
+	let isMobile = $state(false);
+
+	// --- Monotonic ID generator (§1.3) ---
+	let nextId = $state(0);
+	function getNextId(): number {
+		return nextId++;
+	}
+
+	// --- Haptics Logic ---
+	function triggerHaptic(pattern: number | number[]) {
+		if (typeof navigator !== 'undefined' && navigator.vibrate) {
+			try {
+				navigator.vibrate(pattern);
+			} catch (e) {
+				// Ignore if vibration fails
+			}
+		}
+	}
+
+	// --- Core Logic ---
+
+	/** Clears chat history and re-seeds the greeting. */
+	function handleClearHistory() {
+		triggerHaptic([40, 60, 40]); // Stronger haptic for deletion
+		historyStore.set([]);
+		nextId = 0;
+		const seededGreetings: ChatMessage[] = greetings.map((g: Omit<ChatMessage, 'id'>) => ({
+			id: getNextId(),
+			...g
+		}));
+		historyStore.update((h: ChatMessage[]) => {
+			h.push(...seededGreetings);
+			return h;
+		});
+		errorMessage = null;
+		showClearConfirm = false;
+	}
+
+	/** Opens the confirmation modal. */
+	function openClearConfirm() {
+		triggerHaptic([20, 10]); // Soft double tap
+		showClearConfirm = true;
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		// On mobile, let "Enter" default to a new line. On desktop, "Enter" without Shift sends message.
+		if (event.key === 'Enter' && !event.shiftKey && !isMobile) {
+			event.preventDefault();
+			sendMessage();
+		}
+	}
+
+	function autoResize(node: HTMLTextAreaElement) {
+		const resize = () => {
+			node.style.height = 'auto'; // Reset height to recalculate
+			node.style.height = node.scrollHeight + 'px';
+		};
+		node.addEventListener('input', resize);
+		setTimeout(resize, 0); // initial sizing
+		return {
+			destroy() {
+				node.removeEventListener('input', resize);
+			}
+		};
+	}
+
+	/** Sends a message to the server API and appends the response to history. */
+	async function sendMessage() {
+		if (isLoading || !prompt.trim()) return;
+
+		const userPrompt = prompt.trim();
+		triggerHaptic(10); // Light tap for send
+		prompt = '';
+		if (inputElement) {
+			inputElement.style.height = 'auto'; // Reset text area height
+		}
+		isLoading = true;
+		errorMessage = null;
+
+		// Add user message to history
+		const userMsg: ChatMessage = { id: getNextId(), role: 'user', text: userPrompt };
+		historyStore.update((h: ChatMessage[]) => {
+			h.push(userMsg);
+			return h;
+		});
+
+		try {
+			if (chatContainer) {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				chatContainer.scrollTop = chatContainer.scrollHeight;
+			}
+
+			// Capture the store value using derived or local subscription. Svelte 5 makes $store work if in component
+			let currentHistory: ChatMessage[] = [];
+			historyStore.subscribe((val: ChatMessage[]) => {
+				currentHistory = val;
+			})(); // Immediately unsubscribe
+
+			// Build the history payload (strip `id` — server doesn't need it)
+			const historyPayload = currentHistory.map(({ role, text }) => ({ role, text }));
+
+			const res = await fetch(apiEndpoint, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ message: userPrompt, history: historyPayload })
+			});
+
+			if (!res.ok) {
+				let statusString = `${res.status}`;
+				let detailedError = '';
+				try {
+					const errorData = await res.json();
+					if (errorData?.error?.status) {
+						statusString = errorData.error.status;
+					} else if (errorData?.status) {
+						statusString = errorData.status;
+					}
+					if (errorData?.error) {
+						detailedError = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
+					}
+				} catch (jsonErr) {
+					// Fallback to HTTP status code if JSON parsing fails
+				}
+				errorMessage = `STATUS: ${statusString} — ${detailedError || 'API ratelimit likely exceeded. Kindly wait for a reset.'}`;
+				return;
+			}
+
+			const data = await res.json();
+
+			if (data.debug) {
+				console.groupCollapsed(`[AITfES API RESPONSE] ${data.debug.endpoint}`);
+				console.log('Metadata:', data.debug);
+				if (data.debug.pineconeEmbedMatrixSent) {
+					console.log('--- [Vector Dimension Embed Output] ---\n', data.debug.pineconeEmbedMatrixSent);
+				}
+				if (data.debug.ragContextUsed) {
+					console.log('--- [Retrieval Context] ---\n', data.debug.ragContextUsed);
+				}
+				console.log('Raw Final LLM Reply:', data.reply);
+				console.groupEnd();
+			}
+
+			const modelMsg: ChatMessage = { id: getNextId(), role: 'model', text: data.reply };
+			historyStore.update((h: ChatMessage[]) => {
+				h.push(modelMsg);
+				return h;
+			});
+		} catch (e) {
+			triggerHaptic([50, 100, 50, 100, 50]);
+			errorMessage =
+				'STATUS: Since the app is not production ready likely the API ratelimit has been exceeded. Kindly wait for a reset.';
+		} finally {
+			isLoading = false;
+			if (chatContainer) {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				chatContainer.scrollTop = chatContainer.scrollHeight;
+			}
+			if (inputElement) {
+				inputElement.focus();
+			}
+		}
+	}
+
+	// Seed the ID counter from persisted history on mount
+	onMount(() => {
+		isMobile =
+			typeof navigator !== 'undefined' &&
+			(navigator.maxTouchPoints > 0 || /Mobi|Android/i.test(navigator.userAgent));
+
+		let currentHistory: ChatMessage[] = [];
+		historyStore.subscribe((val: ChatMessage[]) => {
+			currentHistory = val;
+		})(); // Immediately unsubscribe
+
+		if (currentHistory.length > 0) {
+			// Resume counter from the highest existing ID + 1
+			nextId = Math.max(...currentHistory.map((m) => m.id)) + 1;
+		} else {
+			// Fresh session — show greeting
+			handleClearHistory();
+		}
+	});
+
+	// Reactive statement for auto-scrolling on history change
+	$effect(() => {
+		let currentHistory: ChatMessage[] = [];
+		historyStore.subscribe((val: ChatMessage[]) => {
+			currentHistory = val;
+		})();
+		
+		if (chatContainer && currentHistory.length) {
+			const isNearBottom =
+				chatContainer.scrollHeight - chatContainer.scrollTop < chatContainer.offsetHeight + 200;
+			if (isNearBottom) {
+				chatContainer.scrollTop = chatContainer.scrollHeight;
+			}
+		}
+	});
+</script>
+
+<div class="chat-app">
+	<header class="app-header">
+		<div style="display:flex; flex-direction:column; align-items: center; justify-content: center; margin:auto">
+			<div style="display:flex; align-items: center;">
+				<img src={favicon} alt="logo" class="logo" />
+				<h1 class="header-title">{title}</h1>
+			</div>
+			{#if subtitle}
+				<p style="font-size: 0.8rem; opacity: 0.8; margin-top: -5px; color: var(--text-color);">
+					{subtitle}
+				</p>
+			{/if}
+		</div>
+
+		<button
+			title="Delete History"
+			on:click={openClearConfirm}
+			class="clear-history-button"
+			aria-label="Clear Chat History"
+		>
+			<svg
+				fill="#000000"
+				viewBox="0 0 14 14"
+				role="img"
+				focusable="false"
+				aria-hidden="true"
+				xmlns="http://www.w3.org/2000/svg"
+				style="width: 18px; height: 18px;"
+			>
+				<g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+				<g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+				<g id="SVGRepo_iconCarrier"
+					><path
+						d="m 9,9 0.444445,0 0,3.11111 -0.444445,0 z m -0.888889,0 0.444445,0 0,4 -0.444445,0 z m 1.777778,0 0.444444,0 0,3.55556 -0.444444,0 z m -2.666667,0 0.444445,0 0,3.55556 -0.444445,0 z m 4.444445,-1.77778 0,0.88889 -9.333334,0 0,-0.88889 -0.444444,0 0,2.22222 0.444444,0 0,-0.88888 9.333334,0 0,0.88888 0.444444,0 0,-2.22222 z M 10.777778,9 l 0.444444,0 0,4 -0.444444,0 z m -4.444445,0 0.444445,0 0,4 -0.444445,0 z M 11.222222,4.55556 9,4.55556 c -0.488877,0 -0.888889,-0.39999 -0.888889,-0.88889 L 8.111111,1 3.666667,1 C 3.177766,1 2.777778,1.39999 2.777778,1.88889 l 0,5.77778 8.444444,0 0,-3.11111 z M 2.777778,9 l 0.444444,0 0,4 -0.444444,0 z M 9,4.11111 l 2.222222,0 L 8.555556,1 l 0,2.66667 C 8.555556,3.93333 8.77779,4.11111 9,4.11111 Z M 4.555556,9 5,9 5,13 4.555556,13 Z m -0.888889,0 0.444444,0 0,3.55556 -0.444444,0 z m 1.777778,0 0.444444,0 0,3.11111 -0.444444,0 z"
+					></path></g
+				></svg
+			>
+		</button>
+	</header>
+
+	<div class="chat-history-container" aria-live="polite" bind:this={chatContainer}>
+		{#each $historyStore as message (message.id)}
+			<div class="message-row {message.role === 'user' ? 'user-row' : 'model-row'}">
+				<div class="chat-message {message.role}">
+					<p class="message-role">{message.role === 'user' ? 'You' : title}</p>
+					<div class="message-content">
+						{message.text}
+					</div>
+				</div>
+			</div>
+		{/each}
+
+		{#if isLoading}
+			<div class="message-row model-row">
+				<div class="chat-message model loading">
+					<div class="loading-animation">
+						<svg class="spinner" viewBox="0 0 24 24" role="status">
+							<circle cx="12" cy="12" r="10" stroke-width="4" fill="none" stroke="currentColor"
+							></circle>
+							<path
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+								fill="var(--color-primary)"
+							></path>
+						</svg>
+						<p>Thinking...</p>
+					</div>
+				</div>
+			</div>
+		{/if}
+	</div>
+
+	<footer class="app-footer">
+		{#if errorMessage}
+			<div class="system-message error">
+				{errorMessage}
+			</div>
+		{/if}
+
+		<form on:submit|preventDefault={sendMessage} class="prompt-form">
+			<textarea
+				placeholder="Ask me anything..."
+				bind:value={prompt}
+				bind:this={inputElement}
+				class="prompt-input"
+				disabled={isLoading}
+				aria-label="Chat input"
+				rows="1"
+				use:autoResize
+				on:keydown={handleKeydown}
+			></textarea>
+			<button
+				title="Send Query"
+				type="submit"
+				class="send-button"
+				disabled={isLoading || !prompt || !prompt.trim()}
+			>
+				Send
+			</button>
+		</form>
+	</footer>
+
+	{#if showClearConfirm}
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
+		<!-- svelte-ignore a11y-no-static-element-interactions -->
+		<div class="modal-overlay" on:click={() => (showClearConfirm = false)}>
+			<div class="modal-content" on:click|stopPropagation>
+				<h2 class="modal-title">Clear History?</h2>
+				<p class="modal-description">
+					This action cannot be undone. All your chat history will be permanently deleted.
+				</p>
+				<div class="modal-actions">
+					<button class="modal-button cancel" on:click={() => (showClearConfirm = false)}>
+						Cancel
+					</button>
+					<button class="modal-button confirm" on:click={handleClearHistory}> Delete</button>
+				</div>
+			</div>
+		</div>
+	{/if}
+</div>

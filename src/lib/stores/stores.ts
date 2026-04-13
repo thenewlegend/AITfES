@@ -88,3 +88,4 @@ function localStore<T>(key: string, initial: T): Writable<T> {
 
 // Chat history persists across reloads
 export const history = localStore<ChatMessage[]>('aitfes_history', []);
+export const sinvertHistory = localStore<ChatMessage[]>('aitfes_sinvert_history', []);

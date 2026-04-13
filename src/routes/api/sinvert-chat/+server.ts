@@ -1,14 +1,15 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { sendChatMessage } from '$lib/gemini';
+import { sendRagChatMessage } from '$lib/gemini';
+import { queryPinecone } from '$lib/pinecone';
 import { structuredConfig, type StructuredConfig, type RejectionRule } from '$lib/sysInstr';
 
 /**
  * Build the system instruction string from the structured config.
- * Kept here on the server so the client never needs to import sysInstr.
  */
 function buildSystemInstruction(config: StructuredConfig): string {
-	let instruction = `You are ${config.assistant_config.name}, an AI assistant specialized in ${config.assistant_config.specialization}.\n\n`;
+	let instruction = `You are ${config.assistant_config.name}, an AI assistant specialized in ${config.assistant_config.specialization}.\n`;
+	instruction += `IMPORTANT: You are now specifically handling inquiries for the 'SINVERT PVS 500 / PVS 600'. Use the provided Vector DB context heavily to inform your responses when matching information is available.\n\n`;
 	instruction += '## Primary Directives\n';
 
 	for (const key in config.directives) {
@@ -27,7 +28,13 @@ function buildSystemInstruction(config: StructuredConfig): string {
 
 const systemInstruction = buildSystemInstruction(structuredConfig);
 
-/** POST /api/chat */
+const productGreeting = [
+	{ text: "I'm AITfES 💡 - SINVERT Support" },
+	{ text: 'Specialized diagnostic flow for SINVERT PVS 500 / PVS 600.' },
+	{ text: 'I can search the knowledge base for SINVERT PVS 500 / 600 issues. Ask me anything about these products.' }
+];
+
+/** POST /api/sinvert-chat */
 export const POST: RequestHandler = async ({ request }) => {
 	// --- Validate request body ---
 	let body: unknown;
@@ -60,20 +67,24 @@ export const POST: RequestHandler = async ({ request }) => {
 		parts: [{ text: m.text }]
 	}));
 
-	// --- Call Gemini ---
 	try {
-		const reply = await sendChatMessage(systemInstruction, geminiHistory, message);
+		// --- Obtain Vector DB Context ---
+		const { ragContext, embedData } = await queryPinecone(message);
+
+		// --- Call Gemini ---
+		const reply = await sendRagChatMessage(systemInstruction, geminiHistory, message, ragContext, productGreeting);
 		return json({
 			reply,
 			debug: {
-				endpoint: '/api/chat',
-				type: 'standard_chat'
+				endpoint: '/api/sinvert-chat',
+				pineconeEmbedMatrixSent: embedData,
+				ragContextUsed: ragContext || 'No context matched.'
 			}
 		});
 	} catch (e) {
-		console.error('[/api/chat] Gemini error:', e);
+		console.error('[SINVERT:ROUTE_CATCH] Uncaught error reached the top-level route endpoint:', e);
 		const errorMessage =
-			e instanceof Error ? e.message : 'An unknown error occurred while contacting the AI.';
+			e instanceof Error ? e.message : 'An unknown error occurred during RAG pipeline execution.';
 		return json({ error: errorMessage }, { status: 500 });
 	}
 };

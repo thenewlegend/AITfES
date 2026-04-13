@@ -1,11 +1,16 @@
 import { GoogleGenAI } from '@google/genai';
 import { GEMINI_API_KEY } from '$env/static/private';
 
+// Helper to initialize GenAI safely
+function getAi() {
+	if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === '') {
+		throw new Error('Server configuration error: GEMINI_API_KEY is missing or empty.');
+	}
+	return new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+}
+
 /**
  * Server-only module — sends a single chat message to Gemini with conversation history.
- *
- * This must NEVER be imported from client-side code. SvelteKit will enforce this
- * because `$env/static/private` is blocked from client imports.
  *
  * @param systemInstruction - The system prompt for the model.
  * @param history - Prior conversation turns in Gemini Content format.
@@ -17,11 +22,7 @@ export async function sendChatMessage(
 	history: Array<{ role: string; parts: Array<{ text: string }> }>,
 	message: string
 ): Promise<string> {
-	if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === '') {
-		throw new Error('Server configuration error: GEMINI_API_KEY is missing or empty.');
-	}
-
-	const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+	const ai = getAi();
 
 	const chat = ai.chats.create({
 		model: 'gemini-2.5-flash',
@@ -46,6 +47,68 @@ export async function sendChatMessage(
 		]
 	});
 
-	const result = await (await chat).sendMessage({ message });
+	const result = await chat.sendMessage({ message });
 	return result.text?.trim() || '';
+}
+
+/**
+ * Server-only module — embeds text using Gemini.
+ */
+export async function embedText(text: string): Promise<number[]> {
+	try {
+		const ai = getAi();
+		const response = await ai.models.embedContent({
+			model: 'gemini-embedding-001',
+			contents: text,
+			config: { outputDimensionality: 1024 }
+		});
+
+		if (!response.embeddings || response.embeddings.length === 0 || !response.embeddings[0].values) {
+			throw new Error('Failed to generate embedding');
+		}
+
+		return response.embeddings[0].values;
+	} catch (error) {
+		const msg = error instanceof Error ? error.message : String(error);
+		console.error(`[SINVERT:EMBED_STEP] ${msg}`);
+		throw new Error(`[SINVERT:EMBED_STEP] ${msg}`);
+	}
+}
+
+/**
+ * Alternative chat function for RAG that injects external context into the final user message.
+ */
+export async function sendRagChatMessage(
+	systemInstruction: string,
+	history: Array<{ role: string; parts: Array<{ text: string }> }>,
+	message: string,
+	contextText: string,
+	productGreeting: Array<{ text: string }>
+): Promise<string> {
+	try {
+		const ai = getAi();
+
+		const chat = ai.chats.create({
+			model: 'gemini-2.5-flash',
+			config: {
+				systemInstruction: systemInstruction,
+			},
+			history: [
+				// Custom greeting block
+				{
+					role: 'model',
+					parts: productGreeting
+				},
+				...history
+			]
+		});
+
+		const augmentedMessage = `Context Information from Vector DB:\n---\n${contextText || 'No specific context found in DB.'}\n---\n\nUser Question: ${message}`;
+		const result = await chat.sendMessage({ message: augmentedMessage });
+		return result.text?.trim() || '';
+	} catch (error) {
+		const msg = error instanceof Error ? error.message : String(error);
+		console.error(`[SINVERT:LLM_STEP] ${msg}`);
+		throw new Error(`[SINVERT:LLM_STEP] ${msg}`);
+	}
 }
