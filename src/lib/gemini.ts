@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { GEMINI_API_KEY } from '$env/static/private';
+import { safeLog } from './logger';
 
 // Helper to initialize GenAI safely
 function getAi() {
@@ -20,7 +21,8 @@ function getAi() {
 export async function sendChatMessage(
 	systemInstruction: string,
 	history: Array<{ role: string; parts: Array<{ text: string }> }>,
-	message: string
+	message: string,
+	collector?: any[]
 ): Promise<string> {
 	const ai = getAi();
 
@@ -48,7 +50,11 @@ export async function sendChatMessage(
 	});
 
 	const result = await chat.sendMessage({ message });
-	return result.text?.trim() || '';
+	const reply = result.text?.trim() || '';
+	
+	safeLog('GEMINI_RESPONSE', { reply }, collector);
+	
+	return reply;
 }
 
 
@@ -60,7 +66,8 @@ export async function sendRagChatMessage(
 	history: Array<{ role: string; parts: Array<{ text: string }> }>,
 	message: string,
 	contextText: string,
-	productGreeting: Array<{ text: string }>
+	productGreeting: Array<{ text: string }>,
+	collector?: any[]
 ): Promise<string> {
 	try {
 		const ai = getAi();
@@ -82,7 +89,11 @@ export async function sendRagChatMessage(
 
 		const augmentedMessage = `Context Information from Vector DB:\n---\n${contextText || 'No specific context found in DB.'}\n---\n\nUser Question: ${message}`;
 		const result = await chat.sendMessage({ message: augmentedMessage });
-		return result.text?.trim() || '';
+		const reply = result.text?.trim() || '';
+		
+		safeLog('GEMINI_RAG_RESPONSE', { reply }, collector);
+		
+		return reply;
 	} catch (error) {
 		const msg = error instanceof Error ? error.message : String(error);
 		console.error(`[SINVERT:LLM_STEP] ${msg}`);

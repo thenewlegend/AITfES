@@ -147,8 +147,9 @@
 			if (!res.ok) {
 				let statusString = `${res.status}`;
 				let detailedError = '';
+				let errorData: any = null;
 				try {
-					const errorData = await res.json();
+					errorData = await res.json();
 					if (errorData?.error?.status) {
 						statusString = errorData.error.status;
 					} else if (errorData?.status) {
@@ -157,8 +158,13 @@
 					if (errorData?.error) {
 						detailedError = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
 					}
+					
+					// Log debug info even on failure
+					if (errorData?.debug) {
+						renderDebugLogs(errorData.debug);
+					}
 				} catch (jsonErr) {
-					// Fallback to HTTP status code if JSON parsing fails
+					// Fallback
 				}
 				errorMessage = `STATUS: ${statusString} — ${detailedError || 'API ratelimit likely exceeded. Kindly wait for a reset.'}`;
 				return;
@@ -167,16 +173,7 @@
 			const data = await res.json();
 
 			if (data.debug) {
-				console.groupCollapsed(`[AITfES API RESPONSE] ${data.debug.endpoint}`);
-				console.log('Metadata:', data.debug);
-				if (data.debug.pineconeEmbedMatrixSent) {
-					console.log('--- [Vector Dimension Embed Output] ---\n', data.debug.pineconeEmbedMatrixSent);
-				}
-				if (data.debug.ragContextUsed) {
-					console.log('--- [Retrieval Context] ---\n', data.debug.ragContextUsed);
-				}
-				console.log('Raw Final LLM Reply:', data.reply);
-				console.groupEnd();
+				renderDebugLogs(data.debug, data.reply);
 			}
 
 			const modelMsg: ChatMessage = { id: getNextId(), role: 'model', text: data.reply };
@@ -198,6 +195,28 @@
 				inputElement.focus();
 			}
 		}
+	}
+
+	/** Helper to render debug information in the browser console. */
+	function renderDebugLogs(debug: any, reply?: string) {
+		console.groupCollapsed(`[AITfES API DEBUG] ${debug.endpoint}`);
+		console.log('Metadata:', debug);
+		
+		if (debug.stepLogs && Array.isArray(debug.stepLogs)) {
+			console.group('Step-by-Step Pipeline Logs');
+			debug.stepLogs.forEach((log: any) => {
+				console.log(`[${log.timestamp}] ${log.label}:`, log.data);
+			});
+			console.groupEnd();
+		}
+
+		if (debug.ragContextUsed) {
+			console.log('--- [Retrieval Context] ---\n', debug.ragContextUsed);
+		}
+		if (reply) {
+			console.log('Raw Final LLM Reply:', reply);
+		}
+		console.groupEnd();
 	}
 	function retryLastMessage() {
 		let currentHistory: ChatMessage[] = [];

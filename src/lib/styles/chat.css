@@ -320,7 +320,7 @@ html {
 }
 
 .retry-button {
-	background: rgba(255, 255, 255, 0.1);
+	background: rgba(212, 212, 212, 0.692);
 	border: 1px solid rgba(255, 255, 255, 0.2);
 	color: var(--text-primary);
 	padding: 8px 20px;

@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { sendChatMessage } from '$lib/gemini';
+import { safeLog } from '$lib/logger';
 import { structuredConfig, type StructuredConfig, type RejectionRule } from '$lib/sysInstr';
 
 /**
@@ -61,19 +62,33 @@ export const POST: RequestHandler = async ({ request }) => {
 	}));
 
 	// --- Call Gemini ---
+	const logs: any[] = [];
+
 	try {
-		const reply = await sendChatMessage(systemInstruction, geminiHistory, message);
-		return json({
+		const reply = await sendChatMessage(systemInstruction, geminiHistory, message, logs);
+		const responseData = {
 			reply,
 			debug: {
 				endpoint: '/api/chat',
-				type: 'standard_chat'
+				type: 'standard_chat',
+				stepLogs: logs
 			}
-		});
+		};
+		
+		safeLog('API_RESPONSE_CHAT', responseData, logs);
+		
+		return json(responseData);
 	} catch (e) {
 		console.error('[/api/chat] Gemini error:', e);
-		const errorMessage =
-			e instanceof Error ? e.message : 'An unknown error occurred while contacting the AI.';
-		return json({ error: errorMessage }, { status: 500 });
+		const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred while contacting the AI.';
+		const errorResponse = {
+			error: errorMessage,
+			debug: {
+				endpoint: '/api/chat',
+				stepLogs: logs
+			}
+		};
+		safeLog('API_RESPONSE_CHAT_FAILURE', errorResponse, logs);
+		return json(errorResponse, { status: 500 });
 	}
 };

@@ -1,5 +1,6 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 import { PINECONE_API } from '$env/static/private';
+import { safeLog } from './logger';
 
 let pineconeClient: Pinecone | null = null;
 
@@ -15,11 +16,13 @@ function getPinecone(): Pinecone {
 	return pineconeClient;
 }
 
-export async function queryPinecone(queryText: string): Promise<{ ragContext: string }> {
+export async function queryPinecone(queryText: string, collector?: any[]): Promise<{ ragContext: string }> {
 	try {
 		const pc = getPinecone();
 		const index = pc.index('sinvert');
 		const namespace = index.namespace('sinvert-pvs500-600');
+
+		safeLog('TEXT_SENT_TO_EMBED', { query: queryText }, collector);
 
 		// @ts-ignore - searchRecords might not be fully typed in all versions yet, or might need specific options.
 		const queryResponse = await namespace.searchRecords({
@@ -35,6 +38,8 @@ export async function queryPinecone(queryText: string): Promise<{ ragContext: st
 			}
 		});
 
+		safeLog('PINECONE_RESPONSE', queryResponse, collector);
+
 		if (!queryResponse.result || !queryResponse.result.hits || queryResponse.result.hits.length === 0) {
 			return { ragContext: '' };
 		}
@@ -47,7 +52,6 @@ export async function queryPinecone(queryText: string): Promise<{ ragContext: st
 			.filter((t: string) => t.length > 0);
 
 		const finalContext = contextParts.join('\n\n');
-		console.log('\n--- [SINVERT:RETRIEVED_CONTEXT] ---\n', finalContext, '\n-----------------------------------\n');
 		return { ragContext: finalContext };
 	} catch (error) {
 		const msg = error instanceof Error ? error.message : String(error);
