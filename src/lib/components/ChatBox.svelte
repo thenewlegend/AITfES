@@ -4,7 +4,7 @@
 	import type { ChatMessage } from '$lib/stores/stores';
 	import favicon from '$lib/assets/aitFes.svg';
 
-	let { 
+	let {
 		apiEndpoint = '/api/chat',
 		historyStore,
 		title = 'AITfES',
@@ -209,7 +209,7 @@
 	function renderDebugLogs(debug: any, reply?: string) {
 		console.groupCollapsed(`[AITfES API DEBUG] ${debug.endpoint}`);
 		console.log('Metadata:', debug);
-		
+
 		if (debug.stepLogs && Array.isArray(debug.stepLogs)) {
 			console.group('Step-by-Step Pipeline Logs');
 			debug.stepLogs.forEach((log: any) => {
@@ -235,8 +235,8 @@
 		historyStore.subscribe((val: ChatMessage[]) => {
 			currentHistory = val;
 		})();
-		
-		const lastUserMsg = [...currentHistory].reverse().find(m => m.role === 'user');
+
+		const lastUserMsg = [...currentHistory].reverse().find((m) => m.role === 'user');
 		if (lastUserMsg) {
 			performMessageSend(lastUserMsg.text);
 		}
@@ -255,6 +255,13 @@
 		if (currentHistory.length > 0) {
 			// Resume counter from the highest existing ID + 1
 			nextId = Math.max(...currentHistory.map((m) => m.id)) + 1;
+
+			// Scroll to bottom on reload to see last messages
+			setTimeout(() => {
+				if (chatContainer) {
+					chatContainer.scrollTop = chatContainer.scrollHeight;
+				}
+			}, 300);
 		} else {
 			// Fresh session — show greeting
 			handleClearHistory();
@@ -267,7 +274,7 @@
 		historyStore.subscribe((val: ChatMessage[]) => {
 			currentHistory = val;
 		})();
-		
+
 		if (chatContainer && currentHistory.length) {
 			const isNearBottom =
 				chatContainer.scrollHeight - chatContainer.scrollTop < chatContainer.offsetHeight + 200;
@@ -280,7 +287,9 @@
 
 <div class="chat-app">
 	<header class="app-header">
-		<div style="display:flex; flex-direction:column; align-items: center; justify-content: center; margin:auto">
+		<div
+			style="display:flex; flex-direction:column; align-items: center; justify-content: center; margin:auto"
+		>
 			<div style="display:flex; align-items: center;">
 				<img src={favicon} alt="logo" class="logo" />
 				<h1 class="header-title">{title}</h1>
