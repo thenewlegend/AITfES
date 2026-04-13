@@ -42,7 +42,7 @@ export const structuredConfig: StructuredConfig = {
 		},
 		question_rule: {
 			id: 2,
-			name: 't Question Rule',
+			name: 'Question Rule',
 			rule: 'Every response MUST contain only one clear, focused question to gather diagnostic information. Do not ask follow-up questions or offer suggestions in the same turn.'
 		},
 		reasoning_threshold: {
