@@ -51,9 +51,9 @@ export async function sendChatMessage(
 
 	const result = await chat.sendMessage({ message });
 	const reply = result.text?.trim() || '';
-	
+
 	safeLog('GEMINI_RESPONSE', { reply }, collector);
-	
+
 	return reply;
 }
 
@@ -90,13 +90,54 @@ export async function sendRagChatMessage(
 		const augmentedMessage = `Context Information from Vector DB:\n---\n${contextText || 'No specific context found in DB.'}\n---\n\nUser Question: ${message}`;
 		const result = await chat.sendMessage({ message: augmentedMessage });
 		const reply = result.text?.trim() || '';
-		
+
 		safeLog('GEMINI_RAG_RESPONSE', { reply }, collector);
-		
+
 		return reply;
 	} catch (error) {
 		const msg = error instanceof Error ? error.message : String(error);
 		console.error(`[SINVERT:LLM_STEP] ${msg}`);
 		throw new Error(`[SINVERT:LLM_STEP] ${msg}`);
+	}
+}
+
+/**
+ * Condenses chat history and a new message into a single standalone search query.
+ */
+export async function condenseQuery(
+	history: Array<{ role: string; parts: Array<{ text: string }> }>,
+	message: string,
+	collector?: any[]
+): Promise<string> {
+	try {
+		const ai = getAi();
+
+		// Build a simple text representation of the history for context
+		const historyText = history
+			.slice(-6) // Only look at last 6 turns to keep it focused
+			.map((m) => `${m.role.toUpperCase()}: ${m.parts.map((p) => p.text).join(' ')}`)
+			.join('\n');
+
+		const queryPrompt = `HISTORY:\n${historyText}\n\nUSER MESSAGE:\n${message}\n\nSTANDALONE QUERY:`;
+
+		const result = await ai.models.generateContent({
+			model: 'gemini-2.5-flash',
+			config: {
+				systemInstruction: 'You are a search query optimizer. Given a chat history and a new user message, rewrite the message into a concise, standalone objective search query that captures all necessary context. Do not answer the question. Only output the search query itself.'
+			},
+			contents: [{ role: 'user', parts: [{ text: queryPrompt }] }]
+		});
+
+		const condensed = result.text?.trim() || message;
+
+		safeLog('CONDENSED_QUERY_GENERATED', { original: message, condensed }, collector);
+		return condensed;
+	} catch (error) {
+		const msg = error instanceof Error ? error.message : String(error);
+		safeLog('CONDENSE_STEP_FAILURE', { error: msg }, collector);
+		console.error(`[SINVERT:CONDENSE_STEP] ${msg}`);
+
+		// DO NOT Fallback - throw so the API handler can report the failure
+		throw new Error(`[CONDENSATION_FAILURE] ${msg}`);
 	}
 }

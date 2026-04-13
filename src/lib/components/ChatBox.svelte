@@ -210,6 +210,10 @@
 			console.groupEnd();
 		}
 
+		if (debug.condensedMessage) {
+			console.log('--- [Condensed Search Query] ---\n', debug.condensedMessage);
+		}
+
 		if (debug.ragContextUsed) {
 			console.log('--- [Retrieval Context] ---\n', debug.ragContextUsed);
 		}

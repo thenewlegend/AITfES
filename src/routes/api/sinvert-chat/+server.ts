@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { sendRagChatMessage } from '$lib/gemini';
+import { sendRagChatMessage, condenseQuery } from '$lib/gemini';
 import { queryPinecone } from '$lib/pinecone';
 import { safeLog } from '$lib/logger';
 import { structuredConfig, type StructuredConfig, type RejectionRule } from '$lib/sysInstr';
@@ -72,8 +72,11 @@ export const POST: RequestHandler = async ({ request }) => {
 	let ragContext = '';
 
 	try {
+		// --- Condense Query for search relevancy ---
+		const condensedMessage = await condenseQuery(geminiHistory, message, logs);
+
 		// --- Obtain Vector DB Context ---
-		const result = await queryPinecone(message, logs);
+		const result = await queryPinecone(condensedMessage, logs);
 		ragContext = result.ragContext;
 
 		// --- Call Gemini ---
@@ -82,24 +85,26 @@ export const POST: RequestHandler = async ({ request }) => {
 			reply,
 			debug: {
 				endpoint: '/api/sinvert-chat',
+				originalMessage: message,
+				condensedMessage: condensedMessage,
 				ragContextUsed: ragContext || 'No context matched.',
 				stepLogs: logs
 			}
 		};
-		
+
 		safeLog('API_RESPONSE_SINVERT', responseData, logs);
-		
+
 		return json(responseData);
 	} catch (e) {
 		console.error('[SINVERT:ROUTE_CATCH] Uncaught error reached the top-level route endpoint:', e);
 		const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred during RAG pipeline execution.';
-		const errorResponse = { 
-			error: errorMessage, 
-			debug: { 
-				endpoint: '/api/sinvert-chat', 
+		const errorResponse = {
+			error: errorMessage,
+			debug: {
+				endpoint: '/api/sinvert-chat',
 				stepLogs: logs,
 				ragContextUsed: ragContext || 'No context matched before error.'
-			} 
+			}
 		};
 		safeLog('API_RESPONSE_FAILURE', errorResponse, logs);
 		return json(errorResponse, { status: 500 });
