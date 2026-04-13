@@ -8,8 +8,11 @@
 	let errorMessage: string | null = null;
 	let prompt = '';
 	let chatContainer: HTMLDivElement;
-	let inputElement: HTMLInputElement;
+	let inputElement: HTMLTextAreaElement;
 	let showClearConfirm = false;
+
+	// --- Device Detection ---
+	let isMobile = false;
 
 	// --- Monotonic ID generator (§1.3) ---
 	let nextId = 0;
@@ -63,6 +66,28 @@
 		showClearConfirm = true;
 	}
 
+	function handleKeydown(event: KeyboardEvent) {
+		// On mobile, let "Enter" default to a new line. On desktop, "Enter" without Shift sends message.
+		if (event.key === 'Enter' && !event.shiftKey && !isMobile) {
+			event.preventDefault();
+			sendMessage();
+		}
+	}
+
+	function autoResize(node: HTMLTextAreaElement) {
+		const resize = () => {
+			node.style.height = 'auto'; // Reset height to recalculate
+			node.style.height = node.scrollHeight + 'px';
+		};
+		node.addEventListener('input', resize);
+		setTimeout(resize, 0); // initial sizing
+		return {
+			destroy() {
+				node.removeEventListener('input', resize);
+			}
+		};
+	}
+
 	/** Sends a message to the server API and appends the response to history. */
 	async function sendMessage() {
 		if (isLoading || !prompt.trim()) return;
@@ -70,6 +95,9 @@
 		const userPrompt = prompt.trim();
 		triggerHaptic(10); // Light tap for send
 		prompt = '';
+		if (inputElement) {
+			inputElement.style.height = 'auto'; // Reset text area height
+		}
 		isLoading = true;
 		errorMessage = null;
 
@@ -95,11 +123,23 @@
 				body: JSON.stringify({ message: userPrompt, history: historyPayload })
 			});
 
-			const data = await res.json();
-
 			if (!res.ok) {
-				throw new Error(data.error || `Server returned ${res.status}`);
+				let statusString = `${res.status}`;
+				try {
+					const errorData = await res.json();
+					if (errorData?.error?.status) {
+						statusString = errorData.error.status;
+					} else if (errorData?.status) {
+						statusString = errorData.status;
+					}
+				} catch (jsonErr) {
+					// Fallback to HTTP status code if JSON parsing fails
+				}
+				errorMessage = `STATUS: ${statusString} — We've encountered a brief interruption in service. Our team is already on it, and functionality will be restored promptly.`;
+				return;
 			}
+
+			const data = await res.json();
 
 			const modelMsg: ChatMessage = { id: getNextId(), role: 'model', text: data.reply };
 			history.update((h) => {
@@ -109,7 +149,7 @@
 		} catch (e) {
 			triggerHaptic([50, 100, 50, 100, 50]);
 			errorMessage =
-				e instanceof Error ? `API Error: ${e.message}` : 'An unknown API error occurred.';
+				"STATUS: We're having trouble reaching the server. Please check your connectivity; normal service will resume shortly.";
 		} finally {
 			isLoading = false;
 			if (chatContainer) {
@@ -124,6 +164,10 @@
 
 	// Seed the ID counter from persisted history on mount
 	onMount(() => {
+		isMobile =
+			typeof navigator !== 'undefined' &&
+			(navigator.maxTouchPoints > 0 || /Mobi|Android/i.test(navigator.userAgent));
+
 		if ($history.length > 0) {
 			// Resume counter from the highest existing ID + 1
 			nextId = Math.max(...$history.map((m) => m.id)) + 1;
@@ -210,20 +254,22 @@
 	<footer class="app-footer">
 		{#if errorMessage}
 			<div class="system-message error">
-				Error: {errorMessage}
+				{errorMessage}
 			</div>
 		{/if}
 
 		<form on:submit|preventDefault={sendMessage} class="prompt-form">
-			<input
-				type="text"
+			<textarea
 				placeholder="Ask me anything..."
 				bind:value={prompt}
 				bind:this={inputElement}
 				class="prompt-input"
 				disabled={isLoading}
 				aria-label="Chat input"
-			/>
+				rows="1"
+				use:autoResize
+				on:keydown={handleKeydown}
+			></textarea>
 			<button
 				title="Send Query"
 				type="submit"

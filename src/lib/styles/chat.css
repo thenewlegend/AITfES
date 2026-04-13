@@ -17,6 +17,12 @@
 	--shadow-glow: 0 4px 20px rgba(147, 249, 185, 0.15);
 }
 
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
 body,
 html {
 	width: 100%;
@@ -28,6 +34,7 @@ html {
 	color: var(--text-primary);
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+	overflow: hidden;
 }
 
 .chat-app {
@@ -215,11 +222,29 @@ html {
 	padding: 16px 24px;
 	background-color: rgba(255, 255, 255, 0.04);
 	border: 1px solid var(--border-color);
-	border-radius: 30px;
+	border-radius: 24px;
 	font-family: var(--font-family);
 	font-size: 1.05rem;
+	line-height: 1.5;
 	color: var(--text-primary);
-	transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+	transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+	resize: none;
+	overflow-y: auto;
+	word-wrap: break-word;
+	white-space: pre-wrap;
+	min-height: 56px;
+	max-height: 160px;
+	/* Limits height to approximately 5 lines before scrolling */
+	-ms-overflow-style: none;
+	/* IE and Edge */
+	scrollbar-width: none;
+	/* Firefox */
+
+}
+
+.prompt-input ::-webkit-scrollbar {
+	display: none;
+	/* Chrome, Safari */
 }
 
 .prompt-input::placeholder {
@@ -280,9 +305,13 @@ html {
 }
 
 .system-message.error {
-	background-color: rgba(239, 68, 68, 0.1);
-	border: 1px solid rgba(239, 68, 68, 0.2);
+	background-color: rgba(239, 68, 68, 0.08);
+	border: 1px solid rgba(239, 68, 68, 0.15);
 	color: #fca5a5;
+	line-height: 1.5;
+	max-width: 600px;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 .loading-animation {
@@ -342,6 +371,7 @@ html {
 
 	.chat-history-container {
 		padding: 20px;
+		min-height: 0;
 	}
 
 	.header-title {
@@ -362,6 +392,31 @@ html {
 		max-width: 90%;
 		padding: 14px 20px;
 	}
+
+	/* Stack modal buttons on mobile and adjust padding */
+	.modal-content {
+		padding: 32px 24px;
+		border-radius: 24px;
+	}
+
+	.modal-actions {
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.modal-button {
+		width: 100%;
+		padding: 14px 20px;
+	}
+
+	.modal-title {
+		font-size: 1.5rem;
+	}
+
+	.modal-description {
+		font-size: 1rem;
+		margin-bottom: 24px;
+	}
 }
 
 /* --- Modal Styles --- */
@@ -379,7 +434,8 @@ html {
 	justify-content: center;
 	z-index: 1000;
 	animation: fadeIn 0.3s ease-out;
-	padding: 20px;
+	padding: 16px;
+	box-sizing: border-box;
 }
 
 .modal-content {
@@ -393,7 +449,8 @@ html {
 	box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 	animation: modalScaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 	position: relative;
-	overflow: hidden;
+	max-height: 85vh;
+	overflow-y: auto;
 }
 
 .modal-title {
