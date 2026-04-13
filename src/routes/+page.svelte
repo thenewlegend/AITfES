@@ -135,7 +135,7 @@
 				} catch (jsonErr) {
 					// Fallback to HTTP status code if JSON parsing fails
 				}
-				errorMessage = `STATUS: ${statusString} — We've encountered a brief interruption in service. Our team is already on it, and functionality will be restored promptly.`;
+				errorMessage = `STATUS: ${statusString} — Since the app is not production ready likely the API ratelimit has been exceeded. Kindly wait for a reset.`;
 				return;
 			}
 
@@ -149,7 +149,7 @@
 		} catch (e) {
 			triggerHaptic([50, 100, 50, 100, 50]);
 			errorMessage =
-				"STATUS: We're having trouble reaching the server. Please check your connectivity; normal service will resume shortly.";
+				'STATUS: Since the app is not production ready likely the API ratelimit has been exceeded. Kindly wait for a reset.';
 		} finally {
 			isLoading = false;
 			if (chatContainer) {
