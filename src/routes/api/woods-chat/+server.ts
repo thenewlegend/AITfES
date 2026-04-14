@@ -126,7 +126,7 @@ export const POST: RequestHandler = async ({ request }) => {
 						return await ai.models.generateContent({
 							model: m,
 							config: {
-								systemInstruction: 'You are a financial search query optimizer. Rewrite the user message into a concise, standalone search query for a financial report. Only output the query.'
+								systemInstruction: 'System Instruction: Role: You are a financial search query optimizer specialised in generating high-precision queries for financial reports, filings, market analysis, and investment research. Objective: Convert the provided user query into a concise, standalone, and unambiguous search query optimised for financial information retrieval systems. Input: User Query: "{user_query}" Guidelines: - Preserve the original intent of the user query. - Expand implicit financial context where necessary (e.g., company names, metrics, timeframes, markets). - Use domain-specific terminology (e.g., revenue, EBITDA, CAGR, earnings, valuation, forecast). - Remove conversational or irrelevant phrasing. - Ensure the query is self-contained and does not rely on prior context. - Prefer clarity and specificity over brevity when needed. - Do not introduce assumptions beyond reasonable financial inference. Output Constraints: - Output only the final optimized search query. - Do not include explanations, labels, or additional text. - Avoid quotation marks unless essential to the query. Only output the query.'
 							},
 							contents: [{ role: 'user', parts: [{ text: `HISTORY:\n${geminiHistory.slice(-4).map((h: any) => h.role + ': ' + h.parts[0].text).join('\n')}\n\nUSER:${message}\n\nSTANDALONE QUERY:` }] }]
 						});
@@ -168,7 +168,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 				// 3. FINAL RESPONSE
 				const augmentedMessage = `Context Information from Financial Report:\n---\n${ragContext || 'No specific data found for this query.'}\n---\n\nUser Question: ${message}`;
-				
+
 				const fullPromptPayload = {
 					systemInstructions: WOODS_CONFIG.systemInstruction,
 					chatHistory: [
