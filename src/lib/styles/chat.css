@@ -195,11 +195,11 @@ html {
 	padding: 0 4px;
 }
 
-.model-row + .message-metadata {
+.model-row+.message-metadata {
 	justify-content: flex-start;
 }
 
-.user-row + .message-metadata {
+.user-row+.message-metadata {
 	justify-content: flex-end;
 }
 
@@ -383,14 +383,18 @@ html {
 	color: #fca5a5;
 	line-height: 1.5;
 	max-width: 600px;
+	max-height: 120px;
+	overflow-y: auto;
 	word-break: break-word;
 	overflow-wrap: break-word;
-	margin-left: auto;
-	margin-right: auto;
+	margin: 0 auto 16px auto;
+	padding: 12px 20px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: 8px;
+	font-size: 0.9rem;
+	scrollbar-width: thin;
 }
 
 .retry-button {

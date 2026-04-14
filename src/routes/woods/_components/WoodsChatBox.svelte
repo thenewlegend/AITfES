@@ -197,6 +197,13 @@
 								h.push(modelMsg);
 								return h;
 							});
+							if (event.debug) renderDebugLogs(event.debug, event.reply);
+						} else if (event.type === 'error') {
+							errorMessage = event.error || 'The system encountered an unexpected issue.';
+							if (event.debug) renderDebugLogs(event.debug);
+							isLoading = false;
+							currentStep = '';
+							return;
 						}
 					} catch (e) {
 						console.error('Parse error:', e);
@@ -214,6 +221,32 @@
 			}
 			if (inputElement) inputElement.focus();
 		}
+	}
+
+	/** Helper to render debug information in the browser console. */
+	function renderDebugLogs(debug: any, reply?: string) {
+		console.groupCollapsed(`[WOODS API DEBUG] ${debug.endpoint}`);
+		console.log('Metadata:', debug);
+
+		if (debug.stepLogs && Array.isArray(debug.stepLogs)) {
+			console.group('Step-by-Step Pipeline Logs');
+			debug.stepLogs.forEach((log: any) => {
+				console.log(`[${log.timestamp}] ${log.label}:`, log.data);
+			});
+			console.groupEnd();
+		}
+
+		if (debug.condensedMessage) {
+			console.log('--- [Condensed Search Query] ---\n', debug.condensedMessage);
+		}
+
+		if (debug.ragContextUsed) {
+			console.log('--- [Retrieval Context] ---\n', debug.ragContextUsed);
+		}
+		if (reply) {
+			console.log('Raw Final LLM Reply:', reply);
+		}
+		console.groupEnd();
 	}
 
 	function retryLastMessage() {
@@ -608,6 +641,26 @@
 		border-radius: 50%;
 		padding: 10px;
 		cursor: pointer;
+	}
+
+	.system-message.error {
+		background-color: rgba(239, 68, 68, 0.08);
+		border: 1px solid rgba(239, 68, 68, 0.15);
+		color: #fca5a5;
+		line-height: 1.5;
+		max-width: 600px;
+		max-height: 100px;
+		overflow-y: auto;
+		word-break: break-word;
+		overflow-wrap: break-word;
+		margin: 0 auto 16px auto;
+		padding: 10px 20px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		font-size: 0.85rem;
+		border-radius: 12px;
 	}
 
 	.modal-overlay {

@@ -35,6 +35,30 @@ const productGreeting = [
 	{ text: 'I can search the knowledge base for SINVERT PVS 500 / 600 issues. Ask me anything about these products.' }
 ];
 
+/**
+ * Extracts a concise, user-friendly message from potentially complex AI/API error objects.
+ */
+function extractUsefulError(e: any): string {
+	if (!e) return 'An unexpected error occurred.';
+	const raw = e instanceof Error ? e.message : String(e);
+	
+	if (raw.includes('429') || raw.toLowerCase().includes('quota') || raw.toLowerCase().includes('rate limit')) {
+		return 'Rate limit exceeded. Highly active session. Please retry in 60 seconds.';
+	}
+	
+	if (raw.includes('500') || raw.toLowerCase().includes('internal server error')) {
+		return 'The AI service is temporarily unstable. Fallbacks are being attempted.';
+	}
+
+	try {
+		const parsed = JSON.parse(raw);
+		if (parsed.error?.message) return parsed.error.message;
+		if (Array.isArray(parsed) && parsed[0]?.error?.message) return parsed[0].error.message;
+	} catch (err) { }
+
+	return raw.length > 150 ? raw.slice(0, 147) + '...' : raw;
+}
+
 /** POST /api/sinvert-chat */
 export const POST: RequestHandler = async ({ request }) => {
 	const encoder = new TextEncoder();
@@ -121,18 +145,19 @@ export const POST: RequestHandler = async ({ request }) => {
 
 				safeLog('API_RESPONSE_SINVERT', responseData, logs);
 				controller.enqueue(encoder.encode(JSON.stringify({ type: 'final', ...responseData }) + '\n'));
-			} catch (e) {
+			} catch (e: any) {
 				console.error('[SINVERT:STREAM_ERROR]', e);
-				const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred during RAG pipeline execution.';
+				const errorMessage = extractUsefulError(e);
 				const errorResponse = {
 					error: errorMessage,
 					debug: {
 						endpoint: '/api/sinvert-chat',
 						stepLogs: logs,
-						ragContextUsed: ragContext || 'No context matched before error.'
+						ragContextUsed: ragContext || 'No context matched before error.',
+						rawError: e instanceof Error ? e.message : String(e)
 					}
 				};
-				safeLog('API_RESPONSE_FAILURE', errorResponse, logs);
+				safeLog('API_RESPONSE_FAILURE', { error: errorMessage, raw: e?.message }, logs);
 				controller.enqueue(encoder.encode(JSON.stringify({ type: 'error', ...errorResponse }) + '\n'));
 			} finally {
 				controller.close();
