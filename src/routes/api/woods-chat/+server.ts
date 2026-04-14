@@ -101,9 +101,9 @@ export const POST: RequestHandler = async ({ request }) => {
 				const namespace = index.namespace(WOODS_PINECONE_NAMESPACE);
 
 				const queryResponse = await namespace.searchRecords({
-					query: { inputs: { text: condensed }, topK: 5 },
+					query: { inputs: { text: condensed }, topK: 12 },
 					fields: ['text'],
-					rerank: { model: 'bge-reranker-v2-m3', rankFields: ['text'], topN: 5 }
+					rerank: { model: 'bge-reranker-v2-m3', rankFields: ['text'], topN: 10 }
 				});
 
 				const contextParts = queryResponse.result?.hits?.map((hit: any) => hit.fields?.text || '').filter(Boolean) || [];
