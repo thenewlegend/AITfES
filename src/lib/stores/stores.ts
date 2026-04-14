@@ -11,7 +11,7 @@ const PERSIST_DEBOUNCE_MS = 500;
 
 // Type definition for a single chat message
 export type ChatMessage = {
-	id: number;
+	id: string;
 	role: 'user' | 'model';
 	text: string;
 	metadata?: {
@@ -31,7 +31,7 @@ function isValidChatHistory(data: unknown): data is ChatMessage[] {
 			(m) =>
 				typeof m === 'object' &&
 				m !== null &&
-				typeof m.id === 'number' &&
+				typeof m.id === 'string' &&
 				(m.role === 'user' || m.role === 'model') &&
 				typeof m.text === 'string'
 		)
@@ -93,3 +93,4 @@ function localStore<T>(key: string, initial: T): Writable<T> {
 // Chat history persists across reloads
 export const history = localStore<ChatMessage[]>('aitfes_history', []);
 export const sinvertHistory = localStore<ChatMessage[]>('aitfes_sinvert_history', []);
+export const woodsHistory = localStore<ChatMessage[]>('aitfes_woods_history', []);
