@@ -33,7 +33,6 @@
 
 	const presetQuestions = [
 		'What financial data sources are used for this analysis?',
-		'How does the Retrieval-Augmented Generation (RAG) system ensure accuracy?',
 		'Can you explain the methodology behind the financial indicators provided?',
 		'How did the financial performance compare between 2023 and 2024?',
 		'What has been the most impactful strategic decision made by Woods over recent years?'
@@ -507,7 +506,7 @@
 				onclick={(e) => e.stopPropagation()}
 			>
 				<h2 class="modal-title">Analysis Starters</h2>
-				<p class="modal-description">Select a formal query to begin the analysis immediately.</p>
+				<p class="modal-description">Select a query template.</p>
 				<div class="preset-questions-list">
 					{#each presetQuestions as question}
 						<button class="preset-question-item" onclick={() => handlePresetClick(question)}>
@@ -606,9 +605,9 @@
 	}
 
 	.chat-message {
-		padding: 16px 24px;
+		padding: 2em;
 		border-radius: 20px;
-		max-width: 75%;
+		max-width: 95%;
 		animation: slideUp 0.4s ease forwards;
 		opacity: 0;
 		transform: translateY(15px);
@@ -904,6 +903,12 @@
 	.questions-modal {
 		max-width: 500px;
 		width: 90%;
+		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none; /* IE/Edge */
+	}
+
+	.questions-modal::-webkit-scrollbar {
+		display: none; /* Chrome, Safari, Edge */
 	}
 
 	.preset-questions-list {
@@ -941,7 +946,6 @@
 	.preset-question-item:hover {
 		background: rgba(16, 185, 129, 0.1);
 		border-color: var(--woods-primary);
-		transform: translateX(4px);
 	}
 
 	.preset-question-item svg {
