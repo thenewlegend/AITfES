@@ -65,12 +65,12 @@ async function runWithFallback(
 function extractUsefulError(e: any): string {
 	if (!e) return 'An unexpected error occurred.';
 	const raw = e instanceof Error ? e.message : String(e);
-	
+
 	// Check for common AI rate limit/quota issues
 	if (raw.includes('429') || raw.toLowerCase().includes('quota') || raw.toLowerCase().includes('rate limit')) {
 		return 'Rate limit exceeded. The system is currently handling high traffic. Please try again in 60 seconds.';
 	}
-	
+
 	if (raw.includes('500') || raw.toLowerCase().includes('internal server error')) {
 		return 'The AI service is temporarily unavailable. We are automatically attempting fallbacks.';
 	}
@@ -103,7 +103,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			try {
 				const body = await request.json();
 				const { message, history } = body;
-				
+
 				if (!message?.trim()) {
 					controller.enqueue(encoder.encode(JSON.stringify({ type: 'error', error: 'Message cannot be empty.' }) + '\n'));
 					controller.close();
@@ -153,7 +153,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 				const contextParts = queryResponse.result?.hits?.map((hit: any) => hit.fields?.text || '').filter(Boolean) || [];
 				ragContext = contextParts.join('\n\n');
-				
+
 				safeLog('WOODS_RAG_RETRIEVED', { numResults: contextParts.length, contextPreview: ragContext.slice(0, 200) }, logs);
 				sendStep('Financial Data Retrieved');
 
