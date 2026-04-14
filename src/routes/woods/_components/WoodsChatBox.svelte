@@ -586,6 +586,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: 24px;
+		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none; /* IE and Edge */
+	}
+
+	.chat-history-container::-webkit-scrollbar {
+		display: none; /* Chrome, Safari and Opera */
 	}
 
 	.message-row {
@@ -638,6 +644,14 @@
 	.message-content {
 		font-size: 1.05rem;
 		line-height: 1.6;
+		max-width: 100%;
+		overflow-x: auto;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+	}
+
+	.message-content::-webkit-scrollbar {
+		display: none;
 	}
 
 	.message-content :global(p) {
@@ -656,7 +670,8 @@
 		font-size: 0.95rem;
 		background: rgba(255, 255, 255, 0.03);
 		border-radius: 12px;
-		overflow: hidden;
+		overflow-x: auto;
+		display: block;
 		border: 1px solid var(--woods-border);
 	}
 
