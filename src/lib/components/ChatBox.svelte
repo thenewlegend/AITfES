@@ -3,6 +3,7 @@
 	import type { Writable } from 'svelte/store';
 	import type { ChatMessage } from '$lib/stores/stores';
 	import favicon from '$lib/assets/aitFes.svg';
+	import { marked } from 'marked';
 
 	let {
 		apiEndpoint = '/api/chat',
@@ -39,6 +40,17 @@
 			} catch (e) {
 				// Ignore if vibration fails
 			}
+		}
+	}
+
+	// --- Markdown Parser Settings ---
+	function renderMarkdown(text: string) {
+		try {
+			// Configuration for marked (you can add more options if needed)
+			return marked.parse(text);
+		} catch (e) {
+			console.error('Markdown error:', e);
+			return text;
 		}
 	}
 
@@ -349,7 +361,7 @@
 				<div class="chat-message {message.role}">
 					<p class="message-role">{message.role === 'user' ? 'You' : title}</p>
 					<div class="message-content">
-						{message.text}
+						{@html renderMarkdown(message.text)}
 					</div>
 					{#if message.role === 'model' && message.metadata}
 						<div class="message-metadata">

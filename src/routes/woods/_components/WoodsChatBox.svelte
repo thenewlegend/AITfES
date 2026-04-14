@@ -3,6 +3,7 @@
 	import type { Writable } from 'svelte/store';
 	import type { ChatMessage } from '$lib/stores/stores';
 	import favicon from '$lib/assets/aitFes.svg';
+	import { marked } from 'marked';
 
 	// The user requested completely isolated logic, so we keep this component standalone within the route.
 	let {
@@ -40,6 +41,17 @@
 			} catch (e) {
 				// Ignore if vibration fails
 			}
+		}
+	}
+
+	// --- Markdown Parser Settings ---
+	function renderMarkdown(text: string) {
+		try {
+			// Configuration for marked (you can add more options if needed)
+			return marked.parse(text);
+		} catch (e) {
+			console.error('Markdown error:', e);
+			return text;
 		}
 	}
 
@@ -287,7 +299,9 @@
 			<div class="message-row {message.role === 'user' ? 'user-row' : 'model-row'}">
 				<div class="chat-message {message.role}">
 					<p class="message-role">{message.role === 'user' ? 'You' : title}</p>
-					<div class="message-content">{message.text}</div>
+					<div class="message-content">
+						{@html renderMarkdown(message.text)}
+					</div>
 					{#if message.role === 'model' && message.metadata}
 						<div class="message-metadata">
 							{#if message.metadata.modelInfo}<span>{message.metadata.modelInfo}</span>{/if}
@@ -471,7 +485,72 @@
 	.message-content {
 		font-size: 1.05rem;
 		line-height: 1.6;
-		white-space: pre-wrap;
+	}
+
+	.message-content :global(p) {
+		margin-bottom: 12px;
+	}
+
+	.message-content :global(p:last-child) {
+		margin-bottom: 0;
+	}
+
+	/* Markdown Table Styling */
+	.message-content :global(table) {
+		width: 100%;
+		border-collapse: collapse;
+		margin: 16px 0;
+		font-size: 0.95rem;
+		background: rgba(255, 255, 255, 0.03);
+		border-radius: 12px;
+		overflow: hidden;
+		border: 1px solid var(--woods-border);
+	}
+
+	.message-content :global(th),
+	.message-content :global(td) {
+		padding: 12px 16px;
+		text-align: left;
+		border-bottom: 1px solid var(--woods-border);
+	}
+
+	.message-content :global(th) {
+		background: rgba(255, 255, 255, 0.08);
+		font-weight: 600;
+		color: var(--woods-primary);
+	}
+
+	.message-content :global(tr:last-child td) {
+		border-bottom: none;
+	}
+
+	/* Lists */
+	.message-content :global(ul),
+	.message-content :global(ol) {
+		margin: 12px 0 12px 24px;
+	}
+
+	.message-content :global(li) {
+		margin-bottom: 6px;
+	}
+
+	/* Headers */
+	.message-content :global(h1),
+	.message-content :global(h2),
+	.message-content :global(h3) {
+		margin: 20px 0 12px 0;
+		font-weight: 600;
+		color: var(--woods-primary);
+	}
+
+	.message-content :global(h3) {
+		font-size: 1.2rem;
+	}
+
+	/* Bold */
+	.message-content :global(strong) {
+		color: var(--woods-primary);
+		font-weight: 600;
 	}
 
 	.app-footer {
