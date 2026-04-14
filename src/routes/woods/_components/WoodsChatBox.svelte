@@ -29,6 +29,8 @@
 	let showClearConfirm = $state(false);
 	let currentStep = $state('');
 	let showQuestionsModal = $state(false);
+	let showDebugModal = $state(false);
+	let lastDebugInfo = $state<any>(null);
 	let abortController = $state<AbortController | null>(null);
 
 	const presetQuestions = [
@@ -229,6 +231,7 @@
 								h.push(modelMsg);
 								return h;
 							});
+							lastDebugInfo = event.debug;
 							if (event.debug) renderDebugLogs(event.debug, event.reply);
 
 							// Scroll to the top of the new answer
@@ -378,8 +381,19 @@
 	<div class="chat-history-container" aria-live="polite" bind:this={chatContainer}>
 		{#each $historyStore as message, i (message.id)}
 			<div class="message-row {message.role === 'user' ? 'user-row' : 'model-row'}">
-				<div class="chat-message {message.role}">
-					<p class="message-role">{message.role === 'user' ? 'You' : title}</p>
+				<div
+					class="chat-message {message.role}"
+					onclick={i === 0 ? () => (showDebugModal = true) : null}
+					onkeydown={i === 0 ? (e) => e.key === 'Enter' && (showDebugModal = true) : null}
+					role={i === 0 ? 'button' : 'presentation'}
+					tabindex={i === 0 ? 0 : -1}
+					style={i === 0 ? 'cursor: help;' : ''}
+				>
+					<p class="message-role">
+						{message.role === 'user' ? 'You' : title}
+						{#if i === 0}<span style="font-size: 0.6rem; opacity: 0.4; margin-left: 8px;">`</span
+							>{/if}
+					</p>
 					<div class="message-content">
 						{@html renderMarkdown(message.text)}
 					</div>
@@ -524,6 +538,91 @@
 						triggerHaptic(10);
 						showQuestionsModal = false;
 					}}>Close</button
+				>
+			</div>
+		</div>
+	{/if}
+
+	{#if showDebugModal}
+		<div class="modal-overlay" role="presentation" onclick={() => (showDebugModal = false)}>
+			<div
+				class="modal-content debug-modal"
+				role="presentation"
+				onclick={(e) => e.stopPropagation()}
+			>
+				<h2 class="modal-title">System Log</h2>
+				<p class="modal-description">Direct observation of the Server-Side RAG Pipeline.</p>
+
+				{#if lastDebugInfo}
+					<div class="debug-logs-container">
+						<section class="debug-section highlight">
+							<h3>[1] Received from Pinecone</h3>
+							<div class="debug-block">
+								{#each lastDebugInfo.stepLogs.filter((l) => l.label === 'WOODS_PINECONE_SEARCH') as log}
+									<p class="label">Top {log.data.numFound} chunks retrieved:</p>
+									<pre>{JSON.stringify(log.data.hits, null, 2)}</pre>
+								{/each}
+							</div>
+						</section>
+
+						<section class="debug-section highlight">
+							<h3>[2] Final Payload to LLM</h3>
+							<div class="debug-block">
+								{#each lastDebugInfo.stepLogs.filter((l) => l.label === 'WOODS_LLM_PROMPT_CONSTRUCTED') as log}
+									<div class="debug-sub-block">
+										<p class="label">System Instructions:</p>
+										<pre class="small-pre">{log.data.systemInstructions}</pre>
+									</div>
+									<div class="debug-sub-block" style="margin-top: 20px;">
+										<p class="label">Total History Items: {log.data.chatHistory?.length || 0}</p>
+										<p class="label">Most Recent History Preview:</p>
+										<pre class="small-pre">{JSON.stringify(
+												log.data.chatHistory?.slice(-2),
+												null,
+												2
+											)}</pre>
+									</div>
+									<div class="debug-sub-block" style="margin-top: 20px;">
+										<p class="label">Incoming Augmented Message (Context + User Query):</p>
+										<pre class="large-pre">{log.data.finalAugmentedMessage}</pre>
+									</div>
+								{:else}
+									<p class="error-text">
+										Wait! 'WOODS_LLM_PROMPT_CONSTRUCTED' log was not found in stepLogs. History of
+										steps: {lastDebugInfo.stepLogs.map((l) => l.label).join(', ')}
+									</p>
+								{/each}
+							</div>
+						</section>
+
+						<section class="debug-section">
+							<h3>[3] Full Pipeline Steps</h3>
+							<div class="debug-steps">
+								{#each lastDebugInfo.stepLogs as step}
+									<div class="debug-step">
+										<span class="step-time">[{new Date(step.timestamp).toLocaleTimeString()}]</span>
+										<span class="step-label">{step.label}</span>
+										{#if step.data}
+											<pre class="step-data">{JSON.stringify(step.data, null, 2)}</pre>
+										{/if}
+									</div>
+								{/each}
+							</div>
+						</section>
+					</div>
+				{:else}
+					<p style="opacity: 0.6; margin: 40px 0;">
+						No active session data found. Run an analysis first, then click the greeting bubble.
+					</p>
+				{/if}
+
+				<button
+					class="modal-button cancel"
+					style="margin-top: 20px;"
+					onclick={() => {
+						triggerHaptic(10);
+						showDebugModal = false;
+					}}>Close Log</button
 				>
 			</div>
 		</div>
@@ -958,5 +1057,123 @@
 
 	.preset-question-item:hover svg {
 		opacity: 1;
+	}
+
+	/* Debug Modal Styles */
+	.debug-modal {
+		max-width: 900px !important;
+		width: 95vw !important;
+		text-align: left !important;
+		max-height: 85vh;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.debug-logs-container {
+		flex-grow: 1;
+		overflow-y: auto;
+		margin-top: 20px;
+		padding-right: 15px;
+		scrollbar-width: thin;
+		scrollbar-color: var(--woods-primary) transparent;
+	}
+
+	.debug-section {
+		margin-bottom: 30px;
+	}
+
+	.debug-section h3 {
+		font-size: 0.9rem;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		color: var(--woods-primary);
+		margin-bottom: 12px;
+		border-left: 3px solid var(--woods-primary);
+		padding-left: 10px;
+	}
+
+	.debug-section.highlight h3 {
+		color: #38bdf8;
+		border-color: #38bdf8;
+	}
+
+	.debug-block {
+		background: rgba(0, 0, 0, 0.3);
+		border: 1px solid var(--woods-border);
+		border-radius: 8px;
+		padding: 15px;
+	}
+
+	.debug-block .label {
+		font-size: 0.75rem;
+		opacity: 0.5;
+		margin-bottom: 8px;
+	}
+
+	.debug-block code,
+	.debug-block pre {
+		font-family: 'Fira Code', 'Courier New', monospace;
+		font-size: 0.85rem;
+		color: #e2e8f0;
+		white-space: pre-wrap;
+		word-break: break-all;
+	}
+
+	.debug-steps {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.debug-step {
+		background: rgba(255, 255, 255, 0.03);
+		border-radius: 6px;
+		padding: 10px;
+		font-size: 0.85rem;
+	}
+
+	.step-time {
+		opacity: 0.4;
+		margin-right: 10px;
+	}
+
+	.step-label {
+		font-weight: 600;
+	}
+
+	.step-data {
+		margin-top: 8px;
+		font-size: 0.75rem;
+		background: #000;
+		padding: 8px;
+		border-radius: 4px;
+		overflow-x: auto;
+	}
+
+	.large-pre {
+		background: #000 !important;
+		padding: 15px !important;
+		border-radius: 8px;
+		max-height: 400px;
+		overflow-y: auto;
+		color: #10b981 !important;
+		border: 1px solid rgba(16, 185, 129, 0.2);
+	}
+
+	.small-pre {
+		background: #000 !important;
+		padding: 10px !important;
+		border-radius: 6px;
+		max-height: 150px;
+		overflow-y: auto;
+		color: #94a3b8 !important;
+		font-size: 0.75rem !important;
+		border: 1px solid rgba(255, 255, 255, 0.05);
+	}
+
+	.error-text {
+		color: #ef4444;
+		font-size: 0.8rem;
+		font-family: monospace;
 	}
 </style>

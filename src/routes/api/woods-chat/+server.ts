@@ -151,14 +151,15 @@ export const POST: RequestHandler = async ({ request }) => {
 					rerank: { model: 'bge-reranker-v2-m3', rankFields: ['text'], topN: 10 }
 				});
 
+				const rawHits = queryResponse.result?.hits || [];
+				safeLog('WOODS_PINECONE_SEARCH', { numFound: rawHits.length, hits: rawHits }, logs);
+
 				const contextParts = queryResponse.result?.hits?.map((hit: any) => {
 					if (!hit.fields) return '';
-					// Formulate a rich context string including all metadata fields for the LLM
-					const metadataStr = Object.entries(hit.fields)
-						.filter(([key]) => key !== 'text')
-						.map(([key, val]) => `${key}: ${val}`)
-						.join(' | ');
-					return `[${metadataStr}]\n${hit.fields.text || ''}`;
+					// Include internal Pinecone ID (_id) and all metadata fields except main text
+					const { text, ...metadata } = hit.fields;
+					const sourceInfo = { id: hit._id || hit.id, ...metadata };
+					return `[SOURCE_METADATA: ${JSON.stringify(sourceInfo)}]\n${text || ''}`;
 				}).filter(Boolean) || [];
 				ragContext = contextParts.join('\n\n---\n\n');
 
@@ -167,6 +168,16 @@ export const POST: RequestHandler = async ({ request }) => {
 
 				// 3. FINAL RESPONSE
 				const augmentedMessage = `Context Information from Financial Report:\n---\n${ragContext || 'No specific data found for this query.'}\n---\n\nUser Question: ${message}`;
+				
+				const fullPromptPayload = {
+					systemInstructions: WOODS_CONFIG.systemInstruction,
+					chatHistory: [
+						{ role: 'model', contents: WOODS_CONFIG.greeting.map(g => g.text) },
+						...geminiHistory
+					],
+					finalAugmentedMessage: augmentedMessage
+				};
+				safeLog('WOODS_LLM_PROMPT_CONSTRUCTED', fullPromptPayload, logs);
 
 				const { result: finalResult, modelName: chatModel } = await runWithFallback(
 					FULL_MODEL_POOL,
