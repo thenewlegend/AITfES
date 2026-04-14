@@ -28,6 +28,16 @@
 	let inputElement = $state<HTMLTextAreaElement | null>(null);
 	let showClearConfirm = $state(false);
 	let currentStep = $state('');
+	let showQuestionsModal = $state(false);
+	let abortController = $state<AbortController | null>(null);
+
+	const presetQuestions = [
+		'What financial data sources are used for this analysis?',
+		'How does the Retrieval-Augmented Generation (RAG) system ensure accuracy?',
+		'Can you explain the methodology behind the financial indicators provided?',
+		'How did the financial performance compare between 2023 and 2024?',
+		'What has been the most impactful strategic decision made by Woods over recent years?'
+	];
 
 	// --- Device Detection ---
 	let isMobile = $state(false);
@@ -73,7 +83,25 @@
 
 	function openClearConfirm() {
 		triggerHaptic([20, 10]);
+		showQuestionsModal = false;
 		showClearConfirm = true;
+	}
+
+	function stopAnalysis() {
+		triggerHaptic([30, 30]);
+		errorMessage = null;
+		if (abortController) {
+			abortController.abort();
+			abortController = null;
+		}
+		isLoading = false;
+		currentStep = 'Analysis stopped.';
+	}
+
+	function handlePresetClick(question: string) {
+		triggerHaptic(10);
+		showQuestionsModal = false;
+		performMessageSend(question);
 	}
 
 	function handleFormSubmit(event: Event) {
@@ -112,6 +140,7 @@
 		triggerHaptic(10);
 		isLoading = true;
 		errorMessage = null;
+		abortController = new AbortController();
 
 		if (!isRetry) {
 			prompt = '';
@@ -131,11 +160,15 @@
 					h.push(userMsg);
 					return h;
 				});
+			}
 
-				if (chatContainer) {
-					await new Promise((resolve) => setTimeout(resolve, 50));
-					chatContainer.scrollTop = chatContainer.scrollHeight;
-				}
+			if (chatContainer) {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				chatContainer.scrollTop = chatContainer.scrollHeight;
+				// Smooth scroll again after a bit to ensure it stays down as rendering finishes
+				setTimeout(() => {
+					if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+				}, 150);
 			}
 
 			let currentHistory: ChatMessage[] = [];
@@ -148,7 +181,8 @@
 			const res = await fetch(apiEndpoint, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ message: userPrompt, history: historyPayload })
+				body: JSON.stringify({ message: userPrompt, history: historyPayload }),
+				signal: abortController.signal
 			});
 
 			if (!res.ok) {
@@ -211,10 +245,15 @@
 				}
 			}
 		} catch (e) {
+			if (e instanceof Error && e.name === 'AbortError') {
+				// Analysis was stopped by user, do not show error.
+				return;
+			}
 			errorMessage = e instanceof Error ? e.message : 'Unknown error';
 		} finally {
 			isLoading = false;
 			currentStep = '';
+			abortController = null;
 			if (chatContainer) {
 				await new Promise((resolve) => setTimeout(resolve, 50));
 				chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -319,7 +358,7 @@
 			class="clear-history-button"
 			aria-label="Clear Chat History"
 		>
-			<svg fill="#000000" viewBox="0 0 14 14" style="width: 18px; height: 18px;">
+			<svg fill="currentColor" viewBox="0 0 14 14" style="width: 18px; height: 18px;">
 				<path
 					d="m 9,9 0.444445,0 0,3.11111 -0.444445,0 z m -0.888889,0 0.444445,0 0,4 -0.444445,0 z m 1.777778,0 0.444444,0 0,3.55556 -0.444444,0 z m -2.666667,0 0.444445,0 0,3.55556 -0.444445,0 z m 4.444445,-1.77778 0,0.88889 -9.333334,0 0,-0.88889 -0.444444,0 0,2.22222 0.444444,0 0,-0.88888 9.333334,0 0,0.88888 0.444444,0 0,-2.22222 z M 10.777778,9 l 0.444444,0 0,4 -0.444444,0 z m -4.444445,0 0.444445,0 0,4 -0.444445,0 z M 11.222222,4.55556 9,4.55556 c -0.488877,0 -0.888889,-0.39999 -0.888889,-0.88889 L 8.111111,1 3.666667,1 C 3.177766,1 2.777778,1.39999 2.777778,1.88889 l 0,5.77778 8.444444,0 0,-3.11111 z M 2.777778,9 l 0.444444,0 0,4 -0.444444,0 z M 9,4.11111 l 2.222222,0 L 8.555556,1 l 0,2.66667 C 8.555556,3.93333 8.77779,4.11111 9,4.11111 Z M 4.555556,9 5,9 5,13 4.555556,13 Z m -0.888889,0 0.444444,0 0,3.55556 -0.444444,0 z m 1.777778,0 0.444444,0 0,3.11111 -0.444444,0 z"
 				></path>
@@ -344,8 +383,13 @@
 						</div>
 					{/if}
 					{#if message.role === 'user' && i === $historyStore.length - 1 && !isLoading}
-						<button type="button" class="retry-button inline" onclick={retryLastMessage}
-							>Retry</button
+						<button
+							type="button"
+							class="retry-button inline"
+							onclick={() => {
+								triggerHaptic(10);
+								retryLastMessage();
+							}}>Retry</button
 						>
 					{/if}
 				</div>
@@ -376,6 +420,21 @@
 	<footer class="app-footer">
 		{#if errorMessage}<div class="system-message error"><span>{errorMessage}</span></div>{/if}
 		<form onsubmit={handleFormSubmit} class="prompt-form">
+			<button
+				type="button"
+				class="questions-toggle-button"
+				onclick={() => {
+					triggerHaptic(10);
+					showQuestionsModal = true;
+				}}
+				title="Preset Questions"
+			>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<circle cx="12" cy="12" r="10"></circle>
+					<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+					<line x1="12" y1="17" x2="12.01" y2="17"></line>
+				</svg>
+			</button>
 			<textarea
 				placeholder="Ask about financial statements..."
 				bind:value={prompt}
@@ -387,11 +446,21 @@
 				onkeydown={handleKeydown}
 			></textarea>
 			<button
-				title="Send Query"
-				type="submit"
-				class="send-button"
-				disabled={isLoading || !prompt || !prompt.trim()}>Analyze</button
+				title={isLoading ? 'Stop Analysis' : 'Send Query'}
+				type={isLoading ? 'button' : 'submit'}
+				class="send-button {isLoading ? 'stop-active' : ''}"
+				onclick={isLoading ? stopAnalysis : () => triggerHaptic(10)}
+				disabled={!isLoading && (!prompt || !prompt.trim())}
 			>
+				{#if isLoading}
+					<div class="stop-content">
+						<div class="stop-icon"></div>
+						<span>Stop</span>
+					</div>
+				{:else}
+					Analyze
+				{/if}
+			</button>
 		</form>
 	</footer>
 
@@ -401,11 +470,48 @@
 				<h2 class="modal-title">Clear Analysis History?</h2>
 				<p class="modal-description">This will clear your current financial analysis session.</p>
 				<div class="modal-actions">
-					<button class="modal-button cancel" onclick={() => (showClearConfirm = false)}
-						>Cancel</button
+					<button
+						class="modal-button cancel"
+						onclick={() => {
+							triggerHaptic(10);
+							showClearConfirm = false;
+						}}>Cancel</button
 					>
-					<button class="modal-button confirm" onclick={handleClearHistory}>Clear</button>
+					<button
+						class="modal-button confirm"
+						onclick={() => {
+							triggerHaptic([40, 60, 40]);
+							handleClearHistory();
+						}}>Clear</button
+					>
 				</div>
+			</div>
+		</div>
+	{/if}
+
+	{#if showQuestionsModal}
+		<div class="modal-overlay" role="presentation" onclick={() => (showQuestionsModal = false)}>
+			<div class="modal-content questions-modal" role="presentation" onclick={(e) => e.stopPropagation()}>
+				<h2 class="modal-title">Analysis Starters</h2>
+				<p class="modal-description">Select a formal query to begin the analysis immediately.</p>
+				<div class="preset-questions-list">
+					{#each presetQuestions as question}
+						<button class="preset-question-item" onclick={() => handlePresetClick(question)}>
+							{question}
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
+							</svg>
+						</button>
+					{/each}
+				</div>
+				<button
+					class="modal-button cancel"
+					style="margin-top: 20px;"
+					onclick={() => {
+						triggerHaptic(10);
+						showQuestionsModal = false;
+					}}>Close</button
+				>
 			</div>
 		</div>
 	{/if}
@@ -617,6 +723,62 @@
 		color: #000;
 		font-weight: 600;
 		cursor: pointer;
+		transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+		border: none;
+		min-width: 120px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.send-button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.send-button.stop-active {
+		background: #ef4444;
+		color: #fff;
+		box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+	}
+
+	.stop-content {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.stop-icon {
+		width: 12px;
+		height: 12px;
+		background: #fff;
+		border-radius: 2px;
+	}
+
+	.questions-toggle-button {
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid var(--woods-border);
+		border-radius: 50%;
+		width: 54px;
+		height: 54px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		color: var(--woods-text-sec);
+		transition: all 0.2s ease;
+		flex-shrink: 0;
+	}
+
+	.questions-toggle-button:hover {
+		background: rgba(255, 255, 255, 0.1);
+		color: #fff;
+		border-color: var(--woods-primary);
+	}
+
+	.questions-toggle-button svg {
+		width: 24px;
+		height: 24px;
 	}
 
 	.spinner {
@@ -700,5 +862,67 @@
 		padding: 12px 24px;
 		cursor: pointer;
 		border: none;
+		opacity: 0.7;
+		transition: opacity 0.2s;
+	}
+
+	.modal-button.cancel:hover {
+		opacity: 1;
+	}
+
+	/* Questions Modal Specifics */
+	.questions-modal {
+		max-width: 500px;
+		width: 90%;
+	}
+
+	.preset-questions-list {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin-top: 24px;
+		text-align: left;
+		max-height: 60vh;
+		overflow-y: auto;
+		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none; /* IE/Edge */
+	}
+
+	.preset-questions-list::-webkit-scrollbar {
+		display: none; /* Chrome, Safari, Edge */
+	}
+
+	.preset-question-item {
+		background: rgba(255, 255, 255, 0.03);
+		border: 1px solid var(--woods-border);
+		padding: 16px 20px;
+		border-radius: 16px;
+		color: var(--woods-text);
+		text-align: left;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.95rem;
+		line-height: 1.4;
+	}
+
+	.preset-question-item:hover {
+		background: rgba(16, 185, 129, 0.1);
+		border-color: var(--woods-primary);
+		transform: translateX(4px);
+	}
+
+	.preset-question-item svg {
+		width: 18px;
+		height: 18px;
+		opacity: 0;
+		transition: all 0.2s ease;
+		color: var(--woods-primary);
+	}
+
+	.preset-question-item:hover svg {
+		opacity: 1;
 	}
 </style>
