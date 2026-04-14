@@ -29,7 +29,8 @@ const FULL_MODEL_POOL = [
 	'gemini-3-flash-preview',
 	'gemini-2.5-flash',
 	'gemini-3.1-pro-preview',
-	'gemini-2.5-pro'
+	'gemini-2.5-pro',
+	'gemma-4-31b-it'
 ];
 
 async function runWithFallback(
