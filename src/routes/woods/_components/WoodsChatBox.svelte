@@ -42,7 +42,6 @@
 	// --- Device Detection ---
 	let isMobile = $state(false);
 
-
 	// --- Haptics Logic ---
 	function triggerHaptic(pattern: number | number[]) {
 		if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -101,7 +100,7 @@
 	function handlePresetClick(question: string) {
 		triggerHaptic(10);
 		showQuestionsModal = false;
-		performMessageSend(question);
+		performMessageSend(question, true);
 	}
 
 	function handleFormSubmit(event: Event) {
@@ -130,9 +129,9 @@
 		};
 	}
 
-	async function performMessageSend(overridePrompt?: string) {
-		const isRetry = typeof overridePrompt === 'string';
-		const userPrompt = (isRetry ? overridePrompt : prompt).trim();
+	async function performMessageSend(overridePrompt?: string, forceAddToHistory = false) {
+		const isRetry = typeof overridePrompt === 'string' && !forceAddToHistory;
+		const userPrompt = (overridePrompt ?? prompt).trim();
 
 		if (isLoading || !userPrompt) return;
 
@@ -232,6 +231,17 @@
 								return h;
 							});
 							if (event.debug) renderDebugLogs(event.debug, event.reply);
+
+							// Scroll to the top of the new answer
+							setTimeout(() => {
+								if (chatContainer) {
+									const modelMessages = chatContainer.querySelectorAll('.message-row.model-row');
+									const lastMessage = modelMessages[modelMessages.length - 1];
+									if (lastMessage) {
+										lastMessage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+									}
+								}
+							}, 100);
 						} else if (event.type === 'error') {
 							errorMessage = event.error || 'The system encountered an unexpected issue.';
 							if (event.debug) renderDebugLogs(event.debug);
@@ -436,7 +446,7 @@
 				</svg>
 			</button>
 			<textarea
-				placeholder="Ask about financial statements..."
+				placeholder="Query"
 				bind:value={prompt}
 				bind:this={inputElement}
 				class="prompt-input"
@@ -491,7 +501,11 @@
 
 	{#if showQuestionsModal}
 		<div class="modal-overlay" role="presentation" onclick={() => (showQuestionsModal = false)}>
-			<div class="modal-content questions-modal" role="presentation" onclick={(e) => e.stopPropagation()}>
+			<div
+				class="modal-content questions-modal"
+				role="presentation"
+				onclick={(e) => e.stopPropagation()}
+			>
 				<h2 class="modal-title">Analysis Starters</h2>
 				<p class="modal-description">Select a formal query to begin the analysis immediately.</p>
 				<div class="preset-questions-list">
