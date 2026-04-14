@@ -148,12 +148,19 @@ export const POST: RequestHandler = async ({ request }) => {
 
 				const queryResponse = await namespace.searchRecords({
 					query: { inputs: { text: condensed }, topK: 12 },
-					fields: ['text'],
 					rerank: { model: 'bge-reranker-v2-m3', rankFields: ['text'], topN: 10 }
 				});
 
-				const contextParts = queryResponse.result?.hits?.map((hit: any) => hit.fields?.text || '').filter(Boolean) || [];
-				ragContext = contextParts.join('\n\n');
+				const contextParts = queryResponse.result?.hits?.map((hit: any) => {
+					if (!hit.fields) return '';
+					// Formulate a rich context string including all metadata fields for the LLM
+					const metadataStr = Object.entries(hit.fields)
+						.filter(([key]) => key !== 'text')
+						.map(([key, val]) => `${key}: ${val}`)
+						.join(' | ');
+					return `[${metadataStr}]\n${hit.fields.text || ''}`;
+				}).filter(Boolean) || [];
+				ragContext = contextParts.join('\n\n---\n\n');
 
 				safeLog('WOODS_RAG_RETRIEVED', { numResults: contextParts.length, contextPreview: ragContext.slice(0, 200) }, logs);
 				sendStep('Financial Data Retrieved');
