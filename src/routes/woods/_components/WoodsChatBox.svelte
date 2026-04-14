@@ -664,7 +664,8 @@
 
 	/* Markdown Table Styling */
 	.message-content :global(table) {
-		width: 100%;
+		width: fit-content;
+		max-width: 100%;
 		border-collapse: collapse;
 		margin: 16px 0;
 		font-size: 0.95rem;
