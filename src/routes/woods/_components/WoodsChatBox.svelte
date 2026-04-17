@@ -358,7 +358,7 @@
 				<h1 class="header-title">{title}</h1>
 			</div>
 			{#if subtitle}
-				<p style="font-size: 0.8rem; opacity: 0.8; margin-top: -5px; color: var(--text-color);">
+				<p style="font-size: 0.8rem; opacity: 0.8; margin-top: 3px; color: var(--text-color);">
 					{subtitle}
 				</p>
 			{/if}
