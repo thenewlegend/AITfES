@@ -4,6 +4,10 @@ AITfES is a multi-agent, retrieval-augmented AI system engineered for industrial
 
 Rather than functioning as a generic chatbot, AITfES operates as a **constrained, inspectable diagnostic system**. It integrates domain-scoped retrieval pipelines, typed system instruction architecture, and a fault-tolerant multi-model inference layer to deliver context-grounded and operationally reliable outputs.
 
+
+## Technical Presentation
+https://www.jiyon.online/AITfES.pdf
+
 ## Live Deployment
 
 - General Agent: https://aitfes.vercel.app
