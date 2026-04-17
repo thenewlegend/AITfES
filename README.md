@@ -1,80 +1,296 @@
-
-
 # AITfES — AI Troubleshooting for Energy Systems
 
-AITfES is a multi-agent, RAG-backed chat platform built for industrial energy engineering support. It provides two domain-specific diagnostic agents — one targeting SINVERT PVS 500/600 inverter troubleshooting and one performing financial analysis over John Wood Group PLC annual reports — plus a general-purpose energy systems assistant. All three agents share a unified SvelteKit full-stack architecture with isolated API routes, vector retrieval via Pinecone, and a Gemini model pool with automatic fallback.
+AITfES is a multi-agent, retrieval-augmented AI system engineered for industrial energy workflows, where correctness, traceability, and controlled reasoning take precedence over conversational fluency.
 
-## Live Demo
-- https://aitfes.vercel.app/woods
-- https://aitfes.vercel.app/sinvert
-- https://aitfes.vercel.app
+Rather than functioning as a generic chatbot, AITfES operates as a **constrained, inspectable diagnostic system**. It integrates domain-scoped retrieval pipelines, typed system instruction architecture, and a fault-tolerant multi-model inference layer to deliver context-grounded and operationally reliable outputs.
 
-## Core Implementations
+## Live Deployment
 
-### Data Pipeline / Ingestion System
+- General Agent: https://aitfes.vercel.app
+- SINVERT Diagnostics: https://aitfes.vercel.app/sinvert
+- Woods Assistant : https://aitfes.vercel.app/woods
 
-Embeddings and document chunks are pre-indexed into Pinecone using its integrated inference pipeline. Two separate indices are maintained:
+---
 
-- **`sinvert` / `sinvert-pvs500-600`** — Technical documentation for SINVERT PVS 500 and PVS 600 solar inverters.
-- **`woods` / `woods-financial`** — John Wood Group PLC Annual Reports and Financial Statements (2019–2025 H1).
+The platform exposes three domain-specialised agents:
 
-Retrieval uses `namespace.searchRecords()` with `inputs: { text }`, delegating embedding generation to Pinecone's inference layer — no local embedding model is required. Both namespaces use the `bge-reranker-v2-m3` reranker.
+- **SINVERT PVS Diagnostic Agent** — fault analysis and parameter-level troubleshooting for PVS 500/600 inverter systems
+- **Woods Financial Analysis Agent** — structured reasoning over John Wood Group PLC reports (2019–2025 H1)
+- **General Energy Systems Assistant** — controlled diagnostic reasoning for broader engineering queries
 
-### RAG System
+All agents share a unified SvelteKit full-stack architecture while maintaining strict isolation across retrieval, instruction, and data layers.
 
-Both RAG pipelines (`/api/sinvert-chat`, `/api/woods-chat`) follow the same three-phase pattern, streamed as NDJSON:
+---
+## Architectural Overview
 
-**Phase 1 — Query Condensation:** The raw user message and the last 4–6 turns of chat history are passed to a Gemini model with a domain-specific system instruction that rewrites the input into a standalone, unambiguous search query. This prevents multi-turn conversational phrasing from degrading vector retrieval.
+AITfES is structured around three core subsystems:
 
-**Phase 2 — Vector Retrieval:** The condensed query is sent to the appropriate Pinecone namespace via `searchRecords`. Retrieved hits are assembled into a structured context string prefixed with `[SOURCE_METADATA: ...]` followed by the chunk text, separated by `---` delimiters.
+1. Pre-indexed retrieval infrastructure (Pinecone)
+2. Deterministic, multi-phase RAG pipelines
+3. Resilient, multi-model inference orchestration
 
-**Phase 3 — Augmented Generation:** The context is injected into the final user message under `Context Information from [source]:\n---\n{context}\n---\nUser Question: {message}`. This augmented message is sent to a Gemini chat session that has been primed with a product-specific system instruction and a seeded greeting turn to anchor the model's persona.
+This separation enforces modularity: retrieval, reasoning, and generation are independently optimisable without cross-layer instability.
 
-**Fallback mechanism (`runWithFallback`):** All Gemini calls iterate over a six-model pool in order of speed (`gemini-3.1-flash-lite-preview → gemini-3-flash-preview → gemini-2.5-flash → gemini-3.1-pro-preview → gemini-2.5-pro → gemma-4-31b-it`). Rate limit (429) and server errors are caught, logged via `safeLog`, and a `step` event is streamed to the UI before the next model is attempted with a 500–800ms delay.
+---
 
-**Debug transparency (Woods):** The `WoodsChatBox` includes an in-UI debug modal that surfaces the raw Pinecone hits, the full constructed prompt payload, and the timestamped step log for the most recent pipeline run. The first greeting bubble acts as the trigger.
+## Data Pipeline & Indexing Strategy
 
-**System instruction architecture:** `sysInstr.ts` defines the assistant config as a typed `StructuredConfig` object with `directives` (troubleshooting flow, question limit, pause-and-reflect threshold, output format) and `rejection_rules` (scope, multi-question, persona). The server routes call `buildSystemInstruction()` at module load time to compile the config into a formatted string — the client never imports it.
+All documents are pre-processed and indexed using **Pinecone’s integrated inference pipeline**, eliminating the need for runtime embedding models and reducing system complexity.
 
-### Full-Stack Application / Interface Layer
+### Indices
 
-The frontend is a **SvelteKit 2** app using **Svelte 5 runes** (`$state`, `$effect`, `$props`), built with Vite and written in TypeScript throughout.
+- `sinvert / sinvert-pvs500-600`
+  - Technical documentation for SINVERT PVS 500/600
+- `woods / woods-financial`
+  - Annual reports and financial statements (2019–2025 H1)
 
-**Three routes, three agents:**
+### Retrieval
 
-| Route | Agent | API Endpoint | Component |
-|---|---|---|---|
-| `/` | AITfES General | `/api/chat` | `ChatBox.svelte` |
-| `/sinvert` | SINVERT PVS Support | `/api/sinvert-chat` | `ChatBox.svelte` |
-| `/woods` | Woods Financial Assistant | `/api/woods-chat` | `WoodsChatBox.svelte` |
+```ts
+namespace.searchRecords({ inputs: { text } })
+```
 
-**Streaming UI:** The client opens a streaming `fetch` request and reads NDJSON line-by-line. Three event types are handled: `step` (updates the live pipeline status label), `error` (surfaces a cleaned error message), and `final` (appends the model reply to history). Response latency is measured client-side via `performance.now()` and displayed in each message's metadata footer.
+Key characteristics:
+- Query-time embeddings generated via Pinecone inference
+- Reranking with `bge-reranker-v2-m3`
+- Metadata-preserving chunk assembly for traceability
 
-**State management:** Each agent has an isolated `localStore` backed by `localStorage` (`aitfes_history`, `aitfes_sinvert_history`, `aitfes_woods_history`). The store validates loaded data against the `ChatMessage` schema before hydrating to prevent render-time crashes from stale or corrupt data.
+---
 
-**UI details:** Markdown responses are rendered via `marked`.
+## Retrieval-Augmented Generation Pipeline
+
+Each pipeline (`/api/sinvert-chat`, `/api/woods-chat`) follows a deterministic three-phase architecture.
+
+### Phase 1 — Query Condensation
+
+Transforms conversational input into a standalone query.
+
+Inputs:
+- Current message
+- Last 4–6 turns of history
+
+Output:
+- Context-independent, semantically explicit search query
+
+Purpose:
+- Prevent retrieval degradation from conversational ambiguity
+
+---
+
+### Phase 2 — Vector Retrieval
+
+The condensed query is dispatched to Pinecone.
+
+Context assembly format:
+
+```
+[SOURCE_METADATA: ...]
+<chunk>
+---
+```
+
+Design intent:
+- Preserve provenance
+- Maintain deterministic formatting
+- Enable predictable downstream prompting
+
+---
+
+### Phase 3 — Augmented Generation
+
+Context injection format:
+
+```
+Context Information:
+---
+{context}
+---
+User Question: {message}
+```
+
+Executed via a Gemini chat session configured with:
+- Domain-specific system instruction
+- Seeded interaction for behavioural anchoring
+
+---
+
+## Model Orchestration & Fault Tolerance
+
+All inference is executed through `runWithFallback()`.
+
+### Model Priority Chain
+
+```
+gemini-3.1-flash-lite-preview
+→ gemini-3-flash-preview
+→ gemini-2.5-flash
+→ gemini-3.1-pro-preview
+→ gemini-2.5-pro
+→ gemma-4-31b-it
+```
+
+### Behaviour
+
+- Sequential fallback across models
+- Handles:
+  - Rate limits (429)
+  - Transient server failures
+- Emits real-time pipeline steps to UI
+- Applies 500–800ms retry backoff
+
+This ensures graceful degradation rather than hard failure.
+
+---
+
+## System Instruction Architecture
+
+System behaviour is defined declaratively via a typed configuration (`StructuredConfig`) in `sysInstr.ts`.
+
+### Structure
+
+- **directives**
+  - Diagnostic flow
+  - Question constraints
+  - Output structure
+  - Reflection thresholds
+
+- **rejection_rules**
+  - Scope enforcement
+  - Multi-question filtering
+  - Persona constraints
+
+Compiled server-side via:
+
+```ts
+buildSystemInstruction()
+```
+
+The client has no access to system prompts, ensuring integrity and preventing leakage.
+
+---
+
+## Debug Transparency (Woods Agent)
+
+The Woods agent exposes full pipeline introspection:
+
+- Raw Pinecone retrieval results
+- Constructed LLM prompt payload
+- Timestamped execution logs
+
+Triggered via UI interaction (greeting bubble).
+
+This design prioritises inspectability over opacity.
+
+---
+
+## Frontend Architecture
+
+### Stack
+
+- SvelteKit 2
+- Svelte 5 (runes: `$state`, `$effect`, `$props`)
+- TypeScript
+- Vite
+
+---
+
+### Routing Model
+
+| Route | Agent | API | Component |
+|------|------|-----|----------|
+| `/` | General | `/api/chat` | `ChatBox.svelte` |
+| `/sinvert` | SINVERT | `/api/sinvert-chat` | `ChatBox.svelte` |
+| `/woods` | Woods | `/api/woods-chat` | `WoodsChatBox.svelte` |
+
+---
+
+### Streaming Interface
+
+- Uses `fetch` with NDJSON streaming
+
+Event types:
+- `step` — pipeline status updates
+- `error` — sanitised error propagation
+- `final` — completed response
+
+Latency:
+- Measured via `performance.now()`
+- Displayed per message
+
+---
+
+### State Management
+
+Each agent maintains isolated local persistence:
+
+- `aitfes_history`
+- `aitfes_sinvert_history`
+- `aitfes_woods_history`
+
+Features:
+- Schema validation (`ChatMessage`)
+- Corruption-safe hydration
+- LocalStorage-backed persistence
+
+---
+
+### UI Layer
+
+- Markdown rendering via `marked`
+- Structured response formatting
+- Inline diagnostic metadata
 
 ---
 
 ## Tech Stack
 
 | Layer | Technology |
-|---|---|
+|------|-----------|
 | Framework | SvelteKit 2, Svelte 5, Vite 6 |
 | LLM | Google Gemini (`@google/genai` v1) |
 | Vector DB | Pinecone (`@pinecone-database/pinecone` v7) |
-| Reranker | BGE Reranker `bge-reranker-v2-m3` (via Pinecone) |
+| Reranker | `bge-reranker-v2-m3` |
 | Markdown | `marked` v18 |
-| Deployment | Vercel `@sveltejs/adapter-auto` |
+| Deployment | Vercel (`@sveltejs/adapter-auto`) |
 
 ---
 
 ## Usage
 
-**General agent (`/`):** Ask a question about energy engineering processes or SINVERT systems. The model applies a structured diagnostic flow — one question at a time — pausing at five consecutive queries to propose a diagnosis and await confirmation.
+### General Agent (`/`)
 
-**SINVERT agent (`/sinvert`):** Ask about SINVERT PVS 500/600 faults or parameters. The pipeline condenses the query, retrieves relevant documentation chunks, and generates a technically grounded response.
-
-**Woods agent (`/woods`):** Ask about financial data across John Wood Group PLC's 2019–2025 H1 reports. Use the preset question panel for guided queries. Click the greeting bubble after any response to inspect the raw Pinecone results and the exact augmented prompt sent to the LLM.
+- Broad energy engineering queries
+- Structured diagnostic reasoning
+- Enforces:
+  - Single-question progression
+  - Reflection threshold after five queries
 
 ---
+
+### SINVERT Agent (`/sinvert`)
+
+- Focus: PVS 500/600 inverter systems
+- Pipeline:
+  - Query normalisation
+  - Document retrieval
+  - Grounded response synthesis
+
+---
+
+### Woods Agent (`/woods`)
+
+- Financial analysis across 2019–2025 H1
+- Supports:
+  - Structured queries
+  - Preset prompts
+  - Full pipeline introspection
+
+---
+
+## Design Principles
+
+- Deterministic RAG over heuristic prompting
+- Typed instruction control over prompt sprawl
+- Transparent inference pipelines
+- Fail-soft model orchestration
+- Strict domain isolation
