@@ -16,7 +16,7 @@ The platform exposes three domain-specialised agents:
 
 - **SINVERT PVS Diagnostic Agent** — fault analysis and parameter-level troubleshooting for PVS 500/600 inverter systems
 - **Woods Financial Analysis Agent** — structured reasoning over John Wood Group PLC reports (2019–2025 H1)
-- **General Energy Systems Assistant** — controlled diagnostic reasoning for broader engineering queries
+- **General Energy Systems Assistant** — controlled diagnostic reasoning for energy engineering related troubleshooting.
 
 All agents share a unified SvelteKit full-stack architecture while maintaining strict isolation across retrieval, instruction, and data layers.
 
@@ -121,7 +121,7 @@ All inference is executed through `runWithFallback()`.
 ### Model Priority Chain
 
 ```
-gemini-3.1-flash-lite-preview
+→ gemini-3.1-flash-lite-preview
 → gemini-3-flash-preview
 → gemini-2.5-flash
 → gemini-3.1-pro-preview
@@ -167,8 +167,6 @@ buildSystemInstruction()
 
 The client has no access to system prompts, ensuring integrity and preventing leakage.
 
----
-
 ## Debug Transparency (Woods Agent)
 
 The Woods agent exposes full pipeline introspection:
@@ -177,17 +175,14 @@ The Woods agent exposes full pipeline introspection:
 - Constructed LLM prompt payload
 - Timestamped execution logs
 
-Triggered via UI interaction (greeting bubble).
-
-This design prioritises inspectability over opacity.
-
+##### Triggered via UI interaction (first greeting bubble).
 ---
 
 ## Frontend Architecture
 
 ### Stack
 
-- SvelteKit 2
+- SvelteKit
 - Svelte 5 (runes: `$state`, `$effect`, `$props`)
 - TypeScript
 - Vite
@@ -287,10 +282,3 @@ Features:
 
 ---
 
-## Design Principles
-
-- Deterministic RAG over heuristic prompting
-- Typed instruction control over prompt sprawl
-- Transparent inference pipelines
-- Fail-soft model orchestration
-- Strict domain isolation
