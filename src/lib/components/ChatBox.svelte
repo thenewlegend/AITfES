@@ -329,7 +329,7 @@
 		// Start placeholder cycling
 		const interval = setInterval(() => {
 			placeholderIndex = (placeholderIndex + 1) % troubleshootingPlaceholders.length;
-		}, 2500);
+		}, 3000);
 
 		if (currentHistory.length > 0) {
 			// Scroll to bottom on reload to see last messages
