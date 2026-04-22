@@ -363,6 +363,20 @@
 			}
 		}
 	});
+ 
+	// --- Placeholder Height Adjustment ---
+	$effect(() => {
+		// Only adjust if the prompt is empty, we have an input element, and it's the initial state
+		if (inputElement && !prompt && $historyStore.length <= greetings.length) {
+			// Trigger a re-calculation of the height based on the placeholder
+			// We do this by temporarily setting the value to the placeholder, measuring, then clearing
+			const originalValue = inputElement.value;
+			inputElement.value = troubleshootingPlaceholders[placeholderIndex];
+			inputElement.style.height = 'auto';
+			inputElement.style.height = inputElement.scrollHeight + 'px';
+			inputElement.value = originalValue;
+		}
+	});
 </script>
 
 <div class="chat-app">
@@ -509,17 +523,26 @@
 		{/if}
 
 		<form onsubmit={handleFormSubmit} class="prompt-form">
-			<textarea
-				placeholder={troubleshootingPlaceholders[placeholderIndex]}
-				bind:value={prompt}
-				bind:this={inputElement}
-				class="prompt-input"
-				disabled={isLoading}
-				aria-label="Chat input"
-				rows="1"
-				use:autoResize
-				onkeydown={handleKeydown}
-			></textarea>
+			<div class="input-wrapper">
+				<textarea
+					placeholder={$historyStore.length <= greetings.length
+						? troubleshootingPlaceholders[placeholderIndex]
+						: ''}
+					bind:value={prompt}
+					bind:this={inputElement}
+					class="prompt-input"
+					disabled={isLoading}
+					aria-label="Chat input"
+					rows="1"
+					use:autoResize
+					onkeydown={handleKeydown}
+				></textarea>
+				{#if !prompt && !isLoading && $historyStore.length <= greetings.length}
+					{#key placeholderIndex}
+						<div class="placeholder-progress"></div>
+					{/key}
+				{/if}
+			</div>
 			<button
 				title="Send Query"
 				type="submit"
