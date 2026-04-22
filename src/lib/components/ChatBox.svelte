@@ -316,7 +316,22 @@
 <div class="chat-app">
 	<header class="app-header">
 		<div class="header-left">
+			<div style="display:flex; align-items: center; gap: 12px;">
+				<img src={favicon} alt="logo" class="logo" />
+				<div style="display: flex; flex-direction: column;">
+					<h1 class="header-title">{title}</h1>
+					{#if subtitle}
+						<p
+							style="font-size: 0.75rem; opacity: 0.7; margin: 0; color: var(--text-secondary); font-weight: 500;"
+						>
+							{subtitle}
+						</p>
+					{/if}
+				</div>
+			</div>
+		</div>
 
+		<div class="header-right">
 			<a
 				href="https://www.jiyon.online/AITfES.pdf"
 				target="_blank"
@@ -354,22 +369,7 @@
 				>
 				<span class="header-link-text">GitHub</span>
 			</a>
-			
-		</div>
 
-		<div class="header-center">
-			<div style="display:flex; align-items: center;">
-				<img src={favicon} alt="logo" class="logo" />
-				<h1 class="header-title">{title}</h1>
-			</div>
-			{#if subtitle}
-				<p style="font-size: 0.8rem; opacity: 0.8; margin-top: -5px; color: var(--text-color);">
-					{subtitle}
-				</p>
-			{/if}
-		</div>
-
-		<div class="header-right">
 			<button
 				title="Delete History"
 				onclick={openClearConfirm}
@@ -393,7 +393,7 @@
 						></path></g
 					></svg
 				>
-			</button>
+			</button><span class="header-link-text">GitHub</span>
 		</div>
 	</header>
 
