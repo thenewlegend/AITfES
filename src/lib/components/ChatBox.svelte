@@ -28,6 +28,49 @@
 	let showClearConfirm = $state(false);
 	let currentStep = $state('');
 
+	// --- Placeholder Cycling ---
+	const troubleshootingPlaceholders = [
+		"My gas turbine vibration just spiked — do I need to trip it?",
+	"Boiler feed pump pressure is collapsing — what should I check immediately?",
+	"I’m losing condenser vacuum fast — where is the leak likely?",
+	"My generator stator temperature is climbing — how dangerous is this?",
+	"Cooling tower approach temperature is worsening — what’s failing?",
+	"My boiler is showing sudden drum level swings — what’s causing this?",
+	"The gas turbine flamed out during load — what could have triggered it?",
+	"I think multiple steam traps have failed — how do I confirm quickly?",
+
+	"My compressor is surging under load — how do I stabilise it?",
+	"Lube oil pressure dropped in the turbine — should I shut down now?",
+	"I’m seeing high exhaust temperature spread in the gas turbine — why?",
+	"My HRSG isn’t producing expected steam — what could be limiting it?",
+	"Condenser backpressure is rising — what should I inspect first?",
+	"My deaerator pressure is unstable — is this a control issue?",
+	"Feedwater flow is erratic to the boiler — what’s likely wrong?",
+	"My ID fan is drawing excessive current — could this be a blockage?",
+	"FD fan airflow seems low — how do I verify the cause?",
+	"ESP outlet emissions have increased — what might have failed?",
+	"My coal mill outlet temperature is too high — is this unsafe?",
+	"I’m seeing slag buildup in the furnace — how do I manage it?",
+	"Boiler efficiency has dropped suddenly — where should I start?",
+	"My turbine isn’t picking up load properly — what could limit it?",
+	"Generator rotor temperature is increasing — what should I check?",
+	"I’m noticing hydrogen pressure loss in the generator — is this critical?",
+	"My cooling water temperature is rising — is the condenser fouled?",
+	"I suspect condenser tube fouling — how can I confirm online?",
+	"Steam pressure is dropping across the system — where is the loss?",
+	"My PRDS system isn’t controlling pressure properly — what’s wrong?",
+	"I’m seeing abnormal vibrations in the cooling tower fan — should I stop it?",
+	"My ash handling system is choking — could this affect boiler operation?",
+	"I’m getting frequent turbine trips — how do I isolate the root cause?",
+	"My auxiliary power consumption has increased — what system should I audit?",
+	"I’m seeing high flue gas oxygen levels — is there air ingress?",
+	"My burner flame looks unstable — could this lead to a trip?",
+	"I’m losing superheater temperature control — what should I inspect?",
+	"Why is my boiler not maintaining load despite fuel input?",
+	"I’m seeing high differential pressure in the air preheater — is it fouled?"
+	];
+	let placeholderIndex = $state(0);
+
 	// --- Device Detection ---
 	let isMobile = $state(false);
 
@@ -283,6 +326,11 @@
 			currentHistory = val;
 		})(); // Immediately unsubscribe
 
+		// Start placeholder cycling
+		const interval = setInterval(() => {
+			placeholderIndex = (placeholderIndex + 1) % troubleshootingPlaceholders.length;
+		}, 2500);
+
 		if (currentHistory.length > 0) {
 			// Scroll to bottom on reload to see last messages
 			setTimeout(() => {
@@ -294,6 +342,10 @@
 			// Fresh session — show greeting
 			handleClearHistory();
 		}
+
+		return () => {
+			clearInterval(interval);
+		};
 	});
 
 	// Reactive statement for auto-scrolling on history change
@@ -393,7 +445,8 @@
 						></path></g
 					></svg
 				>
-			</button><span class="header-link-text">GitHub</span>
+				<span class="clear-history-text">Clear</span>
+			</button>
 		</div>
 	</header>
 
@@ -457,7 +510,7 @@
 
 		<form onsubmit={handleFormSubmit} class="prompt-form">
 			<textarea
-				placeholder="Ask me anything..."
+				placeholder={troubleshootingPlaceholders[placeholderIndex]}
 				bind:value={prompt}
 				bind:this={inputElement}
 				class="prompt-input"

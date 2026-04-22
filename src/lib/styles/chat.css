@@ -131,35 +131,62 @@ html {
 }
 
 .clear-history-button {
-	background: rgba(255, 255, 255, 0.05);
-	border: 1px solid var(--border-color);
-	border-radius: 50%;
-	cursor: pointer;
-	padding: 10px;
 	display: flex;
 	align-items: center;
-	justify-content: center;
+	gap: 8px;
+	color: var(--text-secondary);
+	text-decoration: none;
+	background: rgba(255, 255, 255, 0.05);
+	padding: 8px 12px;
+	border-radius: 12px;
+	border: 1px solid var(--border-color);
+	font-size: 0.85rem;
+	font-weight: 500;
+	cursor: pointer;
 	transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+	font-family: inherit;
+	animation: pulse-attention 8s ease-in-out infinite;
 }
 
 .clear-history-button:hover {
+	color: var(--text-primary);
 	background: rgba(255, 255, 255, 0.1);
-	transform: scale(1.05);
+	border-color: rgba(255, 255, 255, 0.2);
+	transform: translateY(-1px);
 }
 
 .clear-history-button:active {
-	transform: scale(0.92);
+	transform: translateY(0);
 }
 
 .clear-history-button svg {
 	width: 18px;
 	height: 18px;
-	fill: var(--text-secondary);
+	fill: currentColor;
 	transition: fill 0.2s ease;
 }
 
-.clear-history-button:hover svg {
-	fill: var(--text-primary);
+.clear-history-text {
+	display: inline-block;
+}
+
+@keyframes pulse-attention {
+
+	0%,
+	85%,
+	100% {
+		transform: scale(1);
+		box-shadow: 0 0 0 0 rgba(147, 249, 185, 0);
+	}
+
+	90% {
+		transform: scale(1.05);
+		box-shadow: 0 0 20px 2px rgba(147, 249, 185, 0.15);
+	}
+
+	95% {
+		transform: scale(1);
+	}
 }
 
 .chat-history-container {
@@ -546,6 +573,15 @@ html {
 	}
 
 	.header-link {
+		padding: 8px;
+		border-radius: 50%;
+	}
+
+	.clear-history-text {
+		display: none;
+	}
+
+	.clear-history-button {
 		padding: 8px;
 		border-radius: 50%;
 	}
