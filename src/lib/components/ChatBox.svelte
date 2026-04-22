@@ -315,9 +315,49 @@
 
 <div class="chat-app">
 	<header class="app-header">
-		<div
-			style="display:flex; flex-direction:column; align-items: center; justify-content: center; margin:auto"
-		>
+		<div class="header-left">
+
+			<a
+				href="https://www.jiyon.online/AITfES.pdf"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="header-link"
+				title="Technical Presentation"
+			>
+				<svg
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+					<polyline points="14 2 14 8 20 8"></polyline>
+					<line x1="16" y1="13" x2="8" y2="13"></line>
+					<line x1="16" y1="17" x2="8" y2="17"></line>
+					<polyline points="10 9 9 9 8 9"></polyline>
+				</svg>
+				<span class="header-link-text">Project Brief</span>
+			</a>
+			<a
+				href="https://github.com/thenewlegend/AITfES"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="header-link"
+				title="View on GitHub"
+			>
+				<svg viewBox="0 0 24 24" aria-hidden="true"
+					><path
+						d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.164 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12c0-5.523-4.477-10-10-10z"
+					></path></svg
+				>
+				<span class="header-link-text">GitHub</span>
+			</a>
+			
+		</div>
+
+		<div class="header-center">
 			<div style="display:flex; align-items: center;">
 				<img src={favicon} alt="logo" class="logo" />
 				<h1 class="header-title">{title}</h1>
@@ -329,30 +369,32 @@
 			{/if}
 		</div>
 
-		<button
-			title="Delete History"
-			onclick={openClearConfirm}
-			class="clear-history-button"
-			aria-label="Clear Chat History"
-		>
-			<svg
-				fill="#000000"
-				viewBox="0 0 14 14"
-				role="img"
-				focusable="false"
-				aria-hidden="true"
-				xmlns="http://www.w3.org/2000/svg"
-				style="width: 18px; height: 18px;"
+		<div class="header-right">
+			<button
+				title="Delete History"
+				onclick={openClearConfirm}
+				class="clear-history-button"
+				aria-label="Clear Chat History"
 			>
-				<g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-				<g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-				<g id="SVGRepo_iconCarrier"
-					><path
-						d="m 9,9 0.444445,0 0,3.11111 -0.444445,0 z m -0.888889,0 0.444445,0 0,4 -0.444445,0 z m 1.777778,0 0.444444,0 0,3.55556 -0.444444,0 z m -2.666667,0 0.444445,0 0,3.55556 -0.444445,0 z m 4.444445,-1.77778 0,0.88889 -9.333334,0 0,-0.88889 -0.444444,0 0,2.22222 0.444444,0 0,-0.88888 9.333334,0 0,0.88888 0.444444,0 0,-2.22222 z M 10.777778,9 l 0.444444,0 0,4 -0.444444,0 z m -4.444445,0 0.444445,0 0,4 -0.444445,0 z M 11.222222,4.55556 9,4.55556 c -0.488877,0 -0.888889,-0.39999 -0.888889,-0.88889 L 8.111111,1 3.666667,1 C 3.177766,1 2.777778,1.39999 2.777778,1.88889 l 0,5.77778 8.444444,0 0,-3.11111 z M 2.777778,9 l 0.444444,0 0,4 -0.444444,0 z M 9,4.11111 l 2.222222,0 L 8.555556,1 l 0,2.66667 C 8.555556,3.93333 8.77779,4.11111 9,4.11111 Z M 4.555556,9 5,9 5,13 4.555556,13 Z m -0.888889,0 0.444444,0 0,3.55556 -0.444444,0 z m 1.777778,0 0.444444,0 0,3.11111 -0.444444,0 z"
-					></path></g
-				></svg
-			>
-		</button>
+				<svg
+					fill="#000000"
+					viewBox="0 0 14 14"
+					role="img"
+					focusable="false"
+					aria-hidden="true"
+					xmlns="http://www.w3.org/2000/svg"
+					style="width: 18px; height: 18px;"
+				>
+					<g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+					<g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+					<g id="SVGRepo_iconCarrier"
+						><path
+							d="m 9,9 0.444445,0 0,3.11111 -0.444445,0 z m -0.888889,0 0.444445,0 0,4 -0.444445,0 z m 1.777778,0 0.444444,0 0,3.55556 -0.444444,0 z m -2.666667,0 0.444445,0 0,3.55556 -0.444445,0 z m 4.444445,-1.77778 0,0.88889 -9.333334,0 0,-0.88889 -0.444444,0 0,2.22222 0.444444,0 0,-0.88888 9.333334,0 0,0.88888 0.444444,0 0,-2.22222 z M 10.777778,9 l 0.444444,0 0,4 -0.444444,0 z m -4.444445,0 0.444445,0 0,4 -0.444445,0 z M 11.222222,4.55556 9,4.55556 c -0.488877,0 -0.888889,-0.39999 -0.888889,-0.88889 L 8.111111,1 3.666667,1 C 3.177766,1 2.777778,1.39999 2.777778,1.88889 l 0,5.77778 8.444444,0 0,-3.11111 z M 2.777778,9 l 0.444444,0 0,4 -0.444444,0 z M 9,4.11111 l 2.222222,0 L 8.555556,1 l 0,2.66667 C 8.555556,3.93333 8.77779,4.11111 9,4.11111 Z M 4.555556,9 5,9 5,13 4.555556,13 Z m -0.888889,0 0.444444,0 0,3.55556 -0.444444,0 z m 1.777778,0 0.444444,0 0,3.11111 -0.444444,0 z"
+						></path></g
+					></svg
+				>
+			</button>
+		</div>
 	</header>
 
 	<div class="chat-history-container" aria-live="polite" bind:this={chatContainer}>
