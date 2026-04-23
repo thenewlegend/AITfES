@@ -459,7 +459,7 @@
 						></path></g
 					></svg
 				>
-				<span class="clear-history-text">Clear</span>
+				<!-- <span class="clear-history-text">Clear</span> -->
 			</button>
 		</div>
 	</header>

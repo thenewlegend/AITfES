@@ -139,13 +139,13 @@ html {
 	background: rgba(255, 255, 255, 0.05);
 	padding: 8px 12px;
 	border-radius: 12px;
-	border: 1px solid var(--border-color);
+	border: 1px solid rgba(250, 48, 48, 0.45);
 	font-size: 0.85rem;
 	font-weight: 500;
 	cursor: pointer;
 	transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
 	font-family: inherit;
-	animation: pulse-attention 8s ease-in-out infinite;
+	animation: pulse-attention-red 8s ease-in-out infinite;
 }
 
 .clear-history-button:hover {
@@ -170,22 +170,24 @@ html {
 	display: inline-block;
 }
 
-@keyframes pulse-attention {
-
+@keyframes pulse-attention-red {
 	0%,
 	85%,
 	100% {
 		transform: scale(1);
-		box-shadow: 0 0 0 0 rgba(147, 249, 185, 0);
+		box-shadow: 0 0 0 0 rgba(250, 48, 48, 0);
+		border-color: rgba(250, 48, 48, 0.4);
 	}
 
 	90% {
-		transform: scale(1.05);
-		box-shadow: 0 0 20px 2px rgba(147, 249, 185, 0.15);
+		transform: scale(1.01);
+		box-shadow: 0 0 12px 2px rgba(250, 48, 48, 0.3);
+		border-color: rgba(250, 48, 48, 0.9);
 	}
 
 	95% {
 		transform: scale(1);
+		border-color: rgba(250, 48, 48, 0.6);
 	}
 }
 

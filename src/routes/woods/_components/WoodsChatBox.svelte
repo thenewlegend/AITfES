@@ -927,10 +927,40 @@
 
 	.clear-history-button {
 		background: rgba(255, 255, 255, 0.05);
-		border: 1px solid var(--woods-border);
+		border: 1px solid rgba(250, 48, 48, 0.45);
 		border-radius: 50%;
 		padding: 10px;
 		cursor: pointer;
+		transition: all 0.2s ease;
+		animation: pulse-attention-red 8s ease-in-out infinite;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.clear-history-button:hover {
+		background: rgba(250, 48, 48, 0.1);
+		border-color: rgba(250, 48, 48, 0.8);
+		transform: scale(1.05);
+	}
+
+	@keyframes pulse-attention-red {
+		0%,
+		85%,
+		100% {
+			transform: scale(1);
+			box-shadow: 0 0 0 0 rgba(250, 48, 48, 0);
+			border-color: rgba(250, 48, 48, 0.4);
+		}
+		90% {
+			transform: scale(1.1);
+			box-shadow: 0 0 12px 2px rgba(250, 48, 48, 0.3);
+			border-color: rgba(250, 48, 48, 0.9);
+		}
+		95% {
+			transform: scale(1);
+			border-color: rgba(250, 48, 48, 0.6);
+		}
 	}
 
 	.system-message.error {
