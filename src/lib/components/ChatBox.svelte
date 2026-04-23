@@ -527,7 +527,7 @@
 				<textarea
 					placeholder={$historyStore.length <= greetings.length
 						? troubleshootingPlaceholders[placeholderIndex]
-						: ''}
+						: 'Ask follow-up...'}
 					bind:value={prompt}
 					bind:this={inputElement}
 					class="prompt-input"
