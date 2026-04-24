@@ -286,3 +286,8 @@ Features:
 
 ---
 
+<a href="https://aitfes.jiyon.online/">AITfES</a> © 2026 by <a href="https://github.com/thenewlegend">thenewlegend</a> is licensed under <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/">CC BY-NC-ND 4.0</a>&nbsp;&nbsp;
+<img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" height="16" /> 
+<img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" height="16" /> 
+<img src="https://mirrors.creativecommons.org/presskit/icons/nc.svg" height="16" /> 
+<img src="https://mirrors.creativecommons.org/presskit/icons/nd.svg" height="16" />
